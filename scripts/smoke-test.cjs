@@ -161,6 +161,9 @@ const server = http.createServer((req, res) => {
     if (!body.includes("第一学院第三十六届开学典礼邀请函")) {
       throw new Error("starter archive iv-000 should be openable from the start");
     }
+    if (!body.includes("尊敬的各位教职工")) {
+      throw new Error("archive body should be loaded from its [archive] passage");
+    }
 
     await runCommand(reopened, "nt-014");
     body = await reopened.locator("body").innerText();

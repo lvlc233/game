@@ -201,10 +201,11 @@
 <<widget "docViewer">>
   <<set _doc to setup.findDoc($activeDoc)>>
   <<if _doc and setup.isUnlocked(_doc)>>
+    <<set _body to setup.docBody(_doc)>>
     <article class="document-panel">
       <p class="doc-meta"><<= _doc.id >> / <<= _doc.type >> / <<= _doc.chapter >></p>
       <h1><<= _doc.title >></h1>
-      <<for _p range _doc.body>>
+      <<for _p range _body>>
         <p><<= _p >></p>
       <</for>>
       <<if _doc.links.length>>

@@ -64,14 +64,7 @@ setup.archive = [
     unlocked: true,
     unlocksCommands: ["save"],
     links: ["sc-001-code"],
-    body: [
-      "尊敬的各位教职工、在校学子、学生家长及社会各界来宾：",
-      "谨以此函，诚挚邀请您莅临我校，出席第一学院第三十六届开学典礼。",
-      "活动全程，请全体到场人员严格遵守第一学院各项校园规章制度。若您尚不了解校内规范条例，可自行搜索《第一学院校园管理准则》查阅完整版内容，自觉遵守各项要求。",
-      "望各位按时赴约，恪守规则，有序参与本次典礼。",
-      "第一学院",
-      "（日期留白）"
-    ]
+    passage: "archive_iv-000-opening"
   },
   {
     id: "sc-001-code",
@@ -82,12 +75,7 @@ setup.archive = [
     unlocked: true,
     unlocksCommands: ["note", "rule", "link"],
     links: ["nt-014-badge", "rp-002-gate"],
-    body: [
-      "文件由机房脱机备份盘恢复，多个字段缺损。",
-      "一、本校仅存在_色校徽，任何时刻请务必佩戴好你的白色校徽。",
-      "二、本校正门每日__:__开启，__:__准时关闭。__:__后若你在校外，无论看到校门是否开启，都绝对不要进入。",
-      "页脚批注：缺失内容疑似被人工擦除，擦除痕迹集中在颜色与时间。"
-    ]
+    passage: "archive_sc-001-code"
   },
   {
     id: "nt-014-badge",
@@ -97,11 +85,7 @@ setup.archive = [
     keywords: ["校徽", "白色", "红色", "badge", "体育馆", "羊"],
     unlocked: false,
     links: ["sc-001-code", "di-021-sheep"],
-    body: [
-      "粉笔字被雨水洇开，只剩几行能辨认。",
-      "羊今天没有佩戴白色校徽。有人说她胸前那枚是红的，可老师说本校从未发放过红色校徽。",
-      "体育馆门口的监控在 01:58 到 02:07 之间全部失效。"
-    ]
+    passage: "archive_nt-014-badge"
   },
   {
     id: "rp-002-gate",
@@ -111,11 +95,7 @@ setup.archive = [
     keywords: ["正门", "gate", "open", "close", "22:30", "06:00"],
     unlocked: false,
     links: ["sc-001-code"],
-    body: [
-      "06:00 开门，22:30 闭门。重复三次。",
-      "昨夜 23:11，有学生家长称校门仍然敞开。值班员回答：那不是我们的门。",
-      "记录末尾多出一行不属于任何班次的字迹：不要从第二扇门进来。"
-    ]
+    passage: "archive_rp-002-gate"
   },
   {
     id: "di-021-sheep",
@@ -125,11 +105,7 @@ setup.archive = [
     keywords: ["羊", "诅咒", "ritual", "black goat", "children", "wish", "树林"],
     unlocked: false,
     links: ["nt-014-badge"],
-    body: [
-      "他们把我的名字改成了羊，说羊只会低头。",
-      "我在论坛里搜到了很多报复的方法，大多数都像玩笑，直到那个没有头像的人给我发来仪式步骤。",
-      "他说树林里的孩子会回应孩子的愿望。"
-    ]
+    passage: "archive_di-021-sheep"
   }
 ];
 
@@ -455,6 +431,30 @@ setup.isCommandUnlocked = function (category) {
   return arr.indexOf(category) >= 0;
 };
 
+setup.docBody = function (doc) {
+  if (!doc) {
+    return [];
+  }
+  if (Array.isArray(doc.body)) {
+    return doc.body.slice();
+  }
+  if (doc.passage) {
+    var passage = Story.get(doc.passage);
+    if (passage) {
+      var raw = String(passage.text || "").trim();
+      if (!raw) {
+        return [];
+      }
+      return raw.split(/\n\s*\n/).map(function (paragraph) {
+        return paragraph.trim();
+      }).filter(function (paragraph) {
+        return paragraph.length > 0;
+      });
+    }
+  }
+  return [];
+};
+
 setup.setScreen = function (view, command, title, lines, kind) {
   var v = State.variables;
   if (v.menuMode === "game" && v.view) {
@@ -521,7 +521,7 @@ setup.search = function (term) {
       var lower = String(word).toLowerCase();
       return lower.indexOf(key) >= 0 || key.indexOf(lower) >= 0;
     });
-    var bodyHit = (doc.body || []).some(function (line) {
+    var bodyHit = setup.docBody(doc).some(function (line) {
       return String(line).toLowerCase().indexOf(key) >= 0;
     });
     return titleHit || idHit || keywordHit || bodyHit;
@@ -543,7 +543,7 @@ setup.openDoc = function (arg) {
   }
   State.variables.activeDoc = doc.id;
   setup.unlockCommands(doc);
-  setup.setScreen("doc", doc.id, doc.title, doc.body, "doc");
+  setup.setScreen("doc", doc.id, doc.title, setup.docBody(doc), "doc");
 };
 
 setup.runCommand = function (raw) {
