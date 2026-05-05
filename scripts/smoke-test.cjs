@@ -208,6 +208,16 @@ const server = http.createServer((req, res) => {
       throw new Error("cmd-tap chip should fill the command input");
     }
 
+    // rule worksheet must submit without raising "passage X does not exist"
+    await runCommand(reopened, "rule");
+    await reopened.locator(".rule-submit").waitFor({ state: "visible" });
+    await reopened.locator(".rule-submit").click();
+    await reopened.waitForTimeout(200);
+    body = await reopened.locator("body").innerText();
+    if (!body.includes("部分字段与已恢复档案冲突")) {
+      throw new Error("rule submit should land on the validation message");
+    }
+
     await runCommand(reopened, "reset");
     await reopened.waitForFunction(() => SugarCube.State.variables.introCompleted === false);
     await reopened.locator(".intro-shell").waitFor({ state: "visible" });

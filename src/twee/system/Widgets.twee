@@ -229,28 +229,11 @@
         <div class="rule-inputs">
           <<for _i to 0; _i lt _rule.answer.length; _i++>>
             <<set _key to _rule.id + "-" + _i>>
-            <<textbox "$ruleInputs[_key]" "" placeholder "缺失字段">>
+            <input type="text" class="rule-input" placeholder="缺失字段" @data-rule-key="_key" @value="setup.ruleInputValue(_key)">
           <</for>>
         </div>
       </div>
     <</for>>
-    <<button "提交校验" class "rule-submit">>
-      <<set _ok to true>>
-      <<for _rule range setup.rules>>
-        <<for _i to 0; _i lt _rule.answer.length; _i++>>
-          <<set _key to _rule.id + "-" + _i>>
-          <<if ($ruleInputs[_key] || "").trim() neq _rule.answer[_i]>>
-            <<set _ok to false>>
-          <</if>>
-        <</for>>
-      <</for>>
-      <<if _ok>>
-        <<run setup.setScreen("terminal", "rule", "", ["规则碎片已被接受。文件柜变得安静了一些。"], "rule")>>
-      <<else>>
-        <<run setup.setScreen("terminal", "rule", "", ["部分字段与已恢复档案冲突。请重新检查。"], "error")>>
-      <</if>>
-      <<run setup.persistProgress()>>
-      <<replace "#app-root">><<gameShell>><</replace>>
-    <</button>>
+    <button type="button" class="rule-submit" data-rule-submit="1">提交校验</button>
   </section>
 <</widget>>

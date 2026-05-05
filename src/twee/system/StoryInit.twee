@@ -455,6 +455,34 @@ setup.docBody = function (doc) {
   return [];
 };
 
+setup.ruleInputValue = function (key) {
+  var v = State.variables;
+  if (v.ruleInputs && Object.prototype.hasOwnProperty.call(v.ruleInputs, key)) {
+    return String(v.ruleInputs[key] || "");
+  }
+  return "";
+};
+
+setup.submitRules = function () {
+  var ok = true;
+  setup.rules.forEach(function (rule) {
+    rule.answer.forEach(function (answer, i) {
+      var key = rule.id + "-" + i;
+      var val = setup.ruleInputValue(key);
+      if (val.trim() !== answer) {
+        ok = false;
+      }
+    });
+  });
+  if (ok) {
+    setup.setScreen("terminal", "rule", "", ["规则碎片已被接受。文件柜变得安静了一些。"], "rule");
+  } else {
+    setup.setScreen("terminal", "rule", "", ["部分字段与已恢复档案冲突。请重新检查。"], "error");
+  }
+  setup.persistProgress();
+  setup.pushBrowserState();
+};
+
 setup.setScreen = function (view, command, title, lines, kind) {
   var v = State.variables;
   if (v.menuMode === "game" && v.view) {
@@ -1025,6 +1053,20 @@ $(document).on(":passagerender", function (event) {
     var cmd = this.getAttribute("data-cmd");
     if (!cmd) return;
     setup.runCommand(cmd);
+    Engine.play("Game");
+  });
+
+  $(event.content).find("[data-rule-key]").on("input", function () {
+    var key = this.getAttribute("data-rule-key");
+    if (!State.variables.ruleInputs) {
+      State.variables.ruleInputs = {};
+    }
+    State.variables.ruleInputs[key] = this.value;
+  });
+
+  $(event.content).find("[data-rule-submit]").on("click", function (ev) {
+    ev.preventDefault();
+    setup.submitRules();
     Engine.play("Game");
   });
 
