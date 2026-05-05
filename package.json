@@ -1,6 +1,6 @@
 {
-  "name": "mygame",
-  "version": "1.0.0",
+  "name": "first-academy-archive",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -10,10 +10,7 @@
     "serve": "http-server dist -p 4173 -c-1",
     "test:smoke": "node scripts/smoke-test.cjs"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "A SugarCube/Twine command-driven text mystery prototype.",
+  "description": "SugarCube/Twine command-driven text mystery prototype.",
   "devDependencies": {
     "@rohal12/twee-ts": "^1.14.0",
     "http-server": "^14.1.1",

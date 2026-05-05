@@ -1,27 +1,62 @@
 :: StoryInit [script]
-Config.history.maxStates = 1;
-Config.saves.autosave = true;
+Config.history.maxStates = 20;
+Config.saves.autosave = false;
+Config.saves.autoload = false;
 
-setup.commandList = [
-  { name: "help", text: "show known commands" },
-  { name: "doc", text: "list readable archive files" },
-  { name: "open id", text: "open an archive by prefix, e.g. open sc-001" },
-  { name: "find keyword", text: "search damaged disk fragments" },
-  { name: "note", text: "show investigation notes" },
-  { name: "rule", text: "open the rule worksheet" },
-  { name: "link", text: "show discovered document relations" },
-  { name: "save", text: "save current state" },
-  { name: "load", text: "load a saved state" },
-  { name: "back", text: "return to the entrance screen" }
+setup.storageKey = "first-academy-archive-progress-v3";
+setup.libraryKey = "first-academy-archive-library-v1";
+setup.historyStateKey = "first-academy-archive";
+
+setup.stories = [
+  {
+    id: "first-academy",
+    title: "第一学院",
+    description: [
+      "你收到了一封来自第一学院的开学典礼邀请函。",
+      "一块损坏的离线备份盘被修复，残缺档案正在等待检索。",
+      "规则、怪谈与真相，都藏在可以被输入的词语里。"
+    ]
+  }
+];
+
+setup.commands = [
+  { name: "help", text: "查询指令" },
+  { name: "back", text: "回到上一次跳转的地方" },
+  { name: "save", text: "保存" },
+  { name: "load", text: "读档" },
+  { name: "doc", text: "列出文档" },
+  { name: "文件名字", text: "阅读文档" },
+  { name: "find [关键词]", text: "对已阅读的文档进行关键字查询" },
+  { name: "note", text: "查阅笔记" },
+  { name: "rule", text: "填写规则表" },
+  { name: "link", text: "查看文档关系" },
+  { name: "reset", text: "清除进度并重新播放介绍" }
+];
+
+setup.introPages = [
+  {
+    lines: [
+      "欢迎来到第一学院。",
+      "这是一款纯文字解谜游戏。",
+      "你将通过输入指令检索档案，逐步还原规则与真相。"
+    ]
+  },
+  {
+    lines: [
+      "档案来自一块损坏的离线备份盘。",
+      "部分文件只能通过关键词恢复。",
+      "指令本身，也可能藏在故事里。"
+    ]
+  }
 ];
 
 setup.archive = [
   {
     id: "iv-000-opening",
     type: "invitation",
-    title: "第一学院第三十六届开学典礼邀请函",
     chapter: "第零章",
-    keywords: ["邀请函", "opening", "ceremony", "campus", "rules"],
+    title: "第一学院第三十六届开学典礼邀请函",
+    keywords: ["邀请函", "opening", "ceremony", "campus", "rules", "准则"],
     unlocked: true,
     links: ["sc-001-code"],
     body: [
@@ -36,8 +71,8 @@ setup.archive = [
   {
     id: "sc-001-code",
     type: "school-code",
-    title: "第一学院校园管理准则（残页）",
     chapter: "第零章",
+    title: "第一学院校园管理准则（残页）",
     keywords: ["校园管理准则", "rules", "badge", "gate", "校徽", "正门"],
     unlocked: true,
     links: ["nt-014-badge", "rp-002-gate"],
@@ -51,9 +86,9 @@ setup.archive = [
   {
     id: "nt-014-badge",
     type: "note",
-    title: "黑板角落的值日记录",
     chapter: "故事一",
-    keywords: ["校徽", "白色", "红色", "badge", "体育馆", "goat"],
+    title: "黑板角落的值日记录",
+    keywords: ["校徽", "白色", "红色", "badge", "体育馆", "羊"],
     unlocked: false,
     links: ["sc-001-code", "di-021-sheep"],
     body: [
@@ -65,8 +100,8 @@ setup.archive = [
   {
     id: "rp-002-gate",
     type: "report",
-    title: "门卫室交接记录",
     chapter: "故事一",
+    title: "门卫室交接记录",
     keywords: ["正门", "gate", "open", "close", "22:30", "06:00"],
     unlocked: false,
     links: ["sc-001-code"],
@@ -79,9 +114,9 @@ setup.archive = [
   {
     id: "di-021-sheep",
     type: "diary",
-    title: "羊的匿名帖子摘录",
     chapter: "故事一",
-    keywords: ["羊", "诅咒", "ritual", "black goat", "children", "wish"],
+    title: "羊的匿名帖子摘录",
+    keywords: ["羊", "诅咒", "ritual", "black goat", "children", "wish", "树林"],
     unlocked: false,
     links: ["nt-014-badge"],
     body: [
@@ -107,36 +142,206 @@ setup.rules = [
   }
 ];
 
-setup.initialState = function () {
+setup.defaultNotes = [
+  "邀请函要求自行搜索《第一学院校园管理准则》。",
+  "档案编号可以只输入唯一前缀，例如 open sc-001。",
+  "部分档案会在 find 命中后自动恢复。"
+];
+
+setup.defaultState = function () {
+  return {
+    introCompleted: false,
+    introPage: 0,
+    menuMode: "home",
+    selectedStory: "",
+    selectedSaveId: "",
+    storyDescriptionDone: false,
+    input: "",
+    lastInput: "help",
+    previousView: "intro",
+    view: "intro",
+    currentCommand: "",
+    screenTitle: "欢迎来到第一学院",
+    screenKind: "intro",
+    screenLines: [
+      "离线备份盘修复完成。",
+      "文件索引残缺，检索协议等待输入。",
+      "输入 help 查询可用指令。"
+    ],
+    activeDoc: "iv-000-opening",
+    unlocked: setup.archive.filter(function (doc) {
+      return doc.unlocked;
+    }).map(function (doc) {
+      return doc.id;
+    }),
+    notes: setup.defaultNotes.slice(),
+    ruleInputs: {}
+  };
+};
+
+setup.applyProgress = function (progress) {
+  var defaults = setup.defaultState();
+  Object.keys(defaults).forEach(function (key) {
+    State.variables[key] = progress && progress[key] !== undefined ? progress[key] : defaults[key];
+  });
   State.variables.input = "";
-  State.variables.lastInput = "help";
-  State.variables.mode = "terminal";
-  State.variables.activeDoc = "iv-000-opening";
-  State.variables.output = [
-    { kind: "system", text: "FIRST ACADEMY OFFLINE ARCHIVE // recovery shell" },
-    { kind: "system", text: "Type help to inspect available commands." }
-  ];
-  State.variables.unlocked = ["iv-000-opening", "sc-001-code"];
-  State.variables.notes = [
-    "邀请函要求自行搜索《第一学院校园管理准则》。",
-    "档案编号可以只输入前缀，例如 open sc-001。",
-    "部分档案会在 find 命中后自动恢复。"
-  ];
-  State.variables.ruleInputs = {};
+};
+
+setup.snapshot = function () {
+  var v = State.variables;
+  return {
+    introCompleted: v.introCompleted,
+    introPage: v.introPage,
+    menuMode: v.menuMode,
+    selectedStory: v.selectedStory,
+    selectedSaveId: v.selectedSaveId,
+    storyDescriptionDone: v.storyDescriptionDone,
+    lastInput: v.lastInput,
+    previousView: v.previousView,
+    view: v.view,
+    currentCommand: v.currentCommand,
+    screenTitle: v.screenTitle,
+    screenKind: v.screenKind,
+    screenLines: v.screenLines,
+    activeDoc: v.activeDoc,
+    unlocked: v.unlocked,
+    notes: v.notes,
+    ruleInputs: v.ruleInputs
+  };
+};
+
+setup.persistProgress = function () {
+  try {
+    localStorage.setItem(setup.storageKey, JSON.stringify(setup.snapshot()));
+  } catch (ex) {
+    console.warn("Progress save failed:", ex);
+  }
+};
+
+setup.readLibrary = function () {
+  try {
+    var raw = localStorage.getItem(setup.libraryKey);
+    return raw ? JSON.parse(raw) : {};
+  } catch (ex) {
+    console.warn("Save library load failed:", ex);
+    return {};
+  }
+};
+
+setup.writeLibrary = function (library) {
+  try {
+    localStorage.setItem(setup.libraryKey, JSON.stringify(library || {}));
+  } catch (ex) {
+    console.warn("Save library write failed:", ex);
+  }
+};
+
+setup.getStory = function (storyId) {
+  return setup.stories.find(function (story) {
+    return story.id === storyId;
+  }) || null;
+};
+
+setup.listStorySaves = function (storyId) {
+  var library = setup.readLibrary();
+  return library[storyId] || [];
+};
+
+setup.upsertSave = function (storyId, save) {
+  var library = setup.readLibrary();
+  var list = library[storyId] || [];
+  var index = list.findIndex(function (item) {
+    return item.id === save.id;
+  });
+  if (index >= 0) {
+    list[index] = save;
+  } else {
+    list.push(save);
+  }
+  library[storyId] = list;
+  setup.writeLibrary(library);
+};
+
+setup.makeSave = function (storyId, slotType, name) {
+  return {
+    id: slotType === "auto" ? "auto" : "manual-" + Date.now(),
+    type: slotType,
+    name: name || (slotType === "auto" ? "自动存档" : "自定义存档"),
+    updatedAt: new Date().toLocaleString(),
+    snapshot: setup.snapshot()
+  };
+};
+
+setup.autoSaveStory = function () {
+  var storyId = State.variables.selectedStory || "first-academy";
+  setup.persistProgress();
+  setup.upsertSave(storyId, setup.makeSave(storyId, "auto", "自动存档"));
+};
+
+setup.loadStorySave = function (storyId, saveId) {
+  var save = setup.listStorySaves(storyId).find(function (item) {
+    return item.id === saveId;
+  });
+  if (!save) {
+    return false;
+  }
+  setup.applyProgress(save.snapshot);
+  State.variables.introCompleted = true;
+  State.variables.menuMode = "game";
+  State.variables.selectedStory = storyId;
+  return true;
+};
+
+setup.readProgress = function () {
+  try {
+    var raw = localStorage.getItem(setup.storageKey);
+    return raw ? JSON.parse(raw) : null;
+  } catch (ex) {
+    console.warn("Progress load failed:", ex);
+    return null;
+  }
+};
+
+setup.boot = function () {
+  if (State.variables.booted) {
+    return;
+  }
+  State.variables.booted = true;
+  var progress = setup.readProgress();
+  setup.applyProgress(progress);
+  if (!progress || !progress.introCompleted) {
+    State.variables.introCompleted = false;
+    State.variables.introPage = progress && progress.introPage ? progress.introPage : 0;
+  }
+};
+
+setup.replaceBrowserState = function () {
+  try {
+    history.replaceState({ key: setup.historyStateKey, snapshot: setup.snapshot() }, "", location.href);
+  } catch (ex) {
+  }
+};
+
+setup.pushBrowserState = function () {
+  try {
+    history.pushState({ key: setup.historyStateKey, snapshot: setup.snapshot() }, "", location.href);
+  } catch (ex) {
+  }
 };
 
 setup.findDoc = function (query) {
-  var q = String(query || "").toLowerCase();
+  var q = String(query || "").trim().toLowerCase();
   if (!q) {
     return null;
   }
-  return setup.archive.find(function (doc) {
+  var matches = setup.archive.filter(function (doc) {
     return doc.id.toLowerCase() === q || doc.id.toLowerCase().startsWith(q);
   });
+  return matches.length === 1 ? matches[0] : null;
 };
 
 setup.isUnlocked = function (doc) {
-  return State.variables.unlocked.includes(doc.id);
+  return !!doc && State.variables.unlocked.includes(doc.id);
 };
 
 setup.unlock = function (doc) {
@@ -147,11 +352,58 @@ setup.unlock = function (doc) {
   return false;
 };
 
-setup.pushOutput = function (kind, text) {
-  State.variables.output.push({ kind: kind, text: text });
-  if (State.variables.output.length > 80) {
-    State.variables.output.splice(0, State.variables.output.length - 80);
+setup.setScreen = function (view, command, title, lines, kind) {
+  var v = State.variables;
+  v.previousView = v.view || "intro";
+  v.view = view;
+  v.currentCommand = command || "";
+  v.screenTitle = title || "";
+  v.screenLines = Array.isArray(lines) ? lines : [];
+  v.screenKind = kind || view;
+};
+
+setup.renderCommands = function () {
+  return setup.commands.map(function (item) {
+    return item.name + ": " + item.text;
+  });
+};
+
+setup.listUnlockedDocs = function () {
+  return setup.archive.filter(function (doc) {
+    return setup.isUnlocked(doc);
+  }).map(function (doc) {
+    return doc.id + " :: " + doc.title;
+  });
+};
+
+setup.search = function (term) {
+  var key = String(term || "").trim().toLowerCase();
+  if (!key) {
+    return [];
   }
+  return setup.archive.filter(function (doc) {
+    var titleHit = doc.title.toLowerCase().includes(key);
+    var idHit = doc.id.toLowerCase().includes(key);
+    var keywordHit = doc.keywords.some(function (word) {
+      var lower = word.toLowerCase();
+      return lower.includes(key) || key.includes(lower);
+    });
+    return titleHit || idHit || keywordHit;
+  });
+};
+
+setup.openDoc = function (arg) {
+  var doc = setup.findDoc(arg);
+  if (!doc) {
+    setup.setScreen("terminal", arg || "open", "没有找到文档", ["No unique archive matches: " + arg], "error");
+    return;
+  }
+  if (!setup.isUnlocked(doc)) {
+    setup.setScreen("terminal", doc.id, "文档损坏", ["Archive exists in index, but data blocks are still damaged."], "error");
+    return;
+  }
+  State.variables.activeDoc = doc.id;
+  setup.setScreen("doc", doc.id, doc.title, doc.body, "doc");
 };
 
 setup.runCommand = function (raw) {
@@ -161,7 +413,6 @@ setup.runCommand = function (raw) {
   }
 
   State.variables.lastInput = input;
-  setup.pushOutput("input", "> " + input);
 
   var parts = input.split(/\s+/);
   var command = parts[0].toLowerCase();
@@ -169,77 +420,334 @@ setup.runCommand = function (raw) {
 
   switch (command) {
     case "help":
-      setup.pushOutput("result", setup.commandList.map(function (item) {
-        return item.name + " - " + item.text;
-      }).join("\n"));
+      setup.setScreen("terminal", "help", "", setup.renderCommands(), "help");
+      break;
+    case "start":
+      setup.openDoc("iv-000-opening");
       break;
     case "doc":
-      setup.pushOutput("result", setup.archive.filter(function (doc) {
-        return setup.isUnlocked(doc);
-      }).map(function (doc) {
-        return doc.id + " :: " + doc.title;
-      }).join("\n"));
+      setup.setScreen("terminal", "doc", "", setup.listUnlockedDocs(), "doc-list");
       break;
     case "open":
-      var doc = setup.findDoc(arg);
-      if (!doc) {
-        setup.pushOutput("error", "No archive matches: " + arg);
-      } else if (!setup.isUnlocked(doc)) {
-        setup.pushOutput("error", "Archive exists in index, but data blocks are still damaged.");
-      } else {
-        State.variables.activeDoc = doc.id;
-        setup.pushOutput("result", doc.id + " loaded. " + doc.title);
-      }
+      setup.openDoc(arg);
       break;
     case "find":
-      var key = arg.toLowerCase();
-      var hits = setup.archive.filter(function (doc) {
-        return doc.keywords.some(function (word) {
-          return word.toLowerCase().includes(key) || key.includes(word.toLowerCase());
-        }) || doc.title.toLowerCase().includes(key);
-      });
+      var hits = setup.search(arg);
       hits.forEach(setup.unlock);
-      setup.pushOutput("result", hits.length
-        ? hits.map(function (doc) { return doc.id + " :: " + doc.title; }).join("\n")
-        : "No readable fragments found.");
+      setup.setScreen("terminal", "find", "", hits.length
+        ? hits.map(function (doc) { return doc.id + " :: " + doc.title; })
+        : ["No readable fragments found."], "find");
       break;
     case "note":
-      setup.pushOutput("result", State.variables.notes.map(function (note, i) {
+      setup.setScreen("terminal", "note", "", State.variables.notes.map(function (note, i) {
         return (i + 1) + ". " + note;
-      }).join("\n"));
+      }), "note");
+      break;
+    case "rule":
+      setup.setScreen("rules", "rule", "规则怪谈填写表", [], "rules");
       break;
     case "link":
-      setup.pushOutput("result", setup.archive.filter(function (doc) {
+      setup.setScreen("terminal", "link", "", setup.archive.filter(function (doc) {
         return setup.isUnlocked(doc);
       }).map(function (doc) {
         return doc.id + " -> " + (doc.links.length ? doc.links.join(", ") : "none");
-      }).join("\n"));
-      break;
-    case "rule":
-      State.variables.mode = "rules";
-      setup.pushOutput("system", "Rule worksheet opened.");
+      }), "link");
       break;
     case "save":
-      Save.slots.save(0, "第一学院自动存档");
-      setup.pushOutput("system", "Saved to slot 1.");
+      setup.upsertSave(State.variables.selectedStory || "first-academy", setup.makeSave(State.variables.selectedStory || "first-academy", "manual", "自定义存档"));
+      setup.setScreen("terminal", "save", "", ["已创建自定义存档。自动存档仍会继续覆盖最新进度。"], "save");
       break;
     case "load":
-      if (Save.slots.has(0)) {
-        Save.slots.load(0);
+      var progress = setup.readProgress();
+      if (progress) {
+        setup.applyProgress(progress);
       } else {
-        setup.pushOutput("error", "No save exists in slot 1.");
+        setup.setScreen("terminal", "load", "", ["没有可读取的存档。"], "error");
       }
       break;
+    case "reset":
+      try {
+        localStorage.removeItem(setup.storageKey);
+        localStorage.removeItem(setup.libraryKey);
+      } catch (ex) {
+      }
+      setup.applyProgress(setup.defaultState());
+      setup.persistProgress();
+      setup.pushBrowserState();
+      return;
     case "back":
-      Engine.play("Start");
-      break;
+      history.back();
+      return;
     default:
-      var direct = setup.findDoc(command);
-      if (direct && setup.isUnlocked(direct)) {
-        State.variables.activeDoc = direct.id;
-        setup.pushOutput("result", direct.id + " loaded. " + direct.title);
-      } else {
-        setup.pushOutput("error", "Unknown command or archive prefix: " + command);
-      }
+      setup.openDoc(command);
+  }
+
+  setup.autoSaveStory();
+  setup.pushBrowserState();
+};
+
+setup.finishIntro = function () {
+  State.variables.introCompleted = true;
+  State.variables.introPage = setup.introPages.length - 1;
+  State.variables.menuMode = "home";
+  setup.persistProgress();
+  setup.pushBrowserState();
+};
+
+setup.nextIntroPage = function () {
+  if (State.variables.introPage < setup.introPages.length - 1) {
+    State.variables.introPage += 1;
+  } else {
+    setup.finishIntro();
+  }
+  setup.persistProgress();
+  setup.pushBrowserState();
+};
+
+setup.prevIntroPage = function () {
+  if (State.variables.introPage > 0) {
+    State.variables.introPage -= 1;
+    setup.persistProgress();
+    setup.pushBrowserState();
   }
 };
+
+setup.openMenu = function (mode) {
+  State.variables.menuMode = mode || "home";
+  State.variables.selectedSaveId = "";
+  if (mode !== "new-story" && mode !== "archive") {
+    State.variables.selectedStory = "";
+  }
+  setup.persistProgress();
+  setup.pushBrowserState();
+};
+
+setup.showIntroAgain = function () {
+  State.variables.introCompleted = false;
+  State.variables.introPage = 0;
+  State.variables.menuMode = "home";
+  setup.persistProgress();
+  setup.pushBrowserState();
+};
+
+setup.selectStory = function (storyId, mode) {
+  State.variables.selectedStory = storyId;
+  State.variables.menuMode = mode || State.variables.menuMode;
+  State.variables.storyDescriptionDone = false;
+  setup.persistProgress();
+  setup.pushBrowserState();
+};
+
+setup.startStory = function (storyId) {
+  var keepIntro = {
+    introCompleted: true,
+    introPage: setup.introPages.length - 1,
+    menuMode: "game",
+    selectedStory: storyId || "first-academy",
+    selectedSaveId: "",
+    storyDescriptionDone: true
+  };
+  setup.applyProgress(Object.assign(setup.defaultState(), keepIntro));
+  setup.openDoc("iv-000-opening");
+  setup.autoSaveStory();
+  setup.pushBrowserState();
+};
+
+setup.continueStory = function (storyId) {
+  if (setup.loadStorySave(storyId, "auto")) {
+    setup.persistProgress();
+    setup.pushBrowserState();
+  } else {
+    setup.startStory(storyId);
+  }
+};
+
+$(document).on(":passagerender", function (event) {
+  var introShell = $(event.content).find(".intro-shell");
+  if (introShell.length) {
+    var introDone = false;
+    var typingTimers = [];
+    var lines = introShell.find(".type-line").toArray();
+    var pageIndex = State.variables.introPage || 0;
+    var sourceLines = setup.introPages[pageIndex] ? setup.introPages[pageIndex].lines : [];
+
+    function clearTypingTimers() {
+      typingTimers.forEach(function (timer) {
+        clearTimeout(timer);
+      });
+      typingTimers = [];
+    }
+
+    function finishIntroPage() {
+      clearTypingTimers();
+      lines.forEach(function (line, index) {
+        line.textContent = sourceLines[index] || "";
+      });
+      introDone = true;
+      introShell.addClass("is-complete");
+    }
+
+    function typeLine(lineIndex) {
+      if (lineIndex >= lines.length) {
+        introDone = true;
+        introShell.addClass("is-complete");
+        return;
+      }
+
+      var line = lines[lineIndex];
+      var text = sourceLines[lineIndex] || "";
+      var charIndex = 0;
+
+      function tick() {
+        line.textContent = text.slice(0, charIndex);
+        if (charIndex <= text.length) {
+          charIndex += 1;
+          typingTimers.push(setTimeout(tick, 42));
+        } else {
+          typingTimers.push(setTimeout(function () {
+            typeLine(lineIndex + 1);
+          }, 260));
+        }
+      }
+
+      tick();
+    }
+
+    typeLine(0);
+
+    introShell.on("click", function () {
+      console.log("Intro shell clicked, introDone:", introDone);
+      if (!introDone) {
+        finishIntroPage();
+        console.log("Finished intro page, waiting for next click");
+        return;
+      }
+      console.log("Advancing to next intro page or menu");
+      setup.nextIntroPage();
+      console.log("Playing Game passage");
+      Engine.play("Game");
+    });
+
+    introShell.find(".intro-back").on("click", function (ev) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      setup.prevIntroPage();
+      Engine.play("Game");
+    });
+  }
+
+  $(event.content).find("[data-menu-action]").on("click", function () {
+    var action = this.getAttribute("data-menu-action");
+    if (action === "about") {
+      Engine.play("About");
+    } else {
+      setup.openMenu(action);
+      Engine.play("Game");
+    }
+  });
+
+  $(event.content).find(".about-back").on("click", function () {
+    setup.openMenu("home");
+    Engine.play("Game");
+  });
+
+  $(event.content).find("[data-story-id]").on("click", function () {
+    setup.selectStory(this.getAttribute("data-story-id"), State.variables.menuMode);
+    Engine.play("Game");
+  });
+
+  $(event.content).find("[data-save-id]").on("click", function () {
+    var storyId = State.variables.selectedStory;
+    if (setup.loadStorySave(storyId, this.getAttribute("data-save-id"))) {
+      setup.persistProgress();
+      setup.pushBrowserState();
+    }
+    Engine.play("Game");
+  });
+
+  $(event.content).find("[data-start-story]").on("click", function () {
+    setup.startStory(this.getAttribute("data-start-story"));
+    Engine.play("Game");
+  });
+
+  $(event.content).find("[data-continue-story]").on("click", function () {
+    setup.continueStory(this.getAttribute("data-continue-story"));
+    Engine.play("Game");
+  });
+
+  var preview = $(event.content).find(".story-preview");
+  if (preview.length) {
+    var story = setup.getStory(State.variables.selectedStory);
+    var sourceLines = story ? story.description : [];
+    var spans = preview.find(".story-type-line").toArray();
+    var timers = [];
+    var done = false;
+
+    function clearStoryTimers() {
+      timers.forEach(function (timer) {
+        clearTimeout(timer);
+      });
+      timers = [];
+    }
+
+    function finishStoryDescription() {
+      clearStoryTimers();
+      spans.forEach(function (span, index) {
+        span.textContent = sourceLines[index] || "";
+      });
+      done = true;
+      preview.addClass("is-complete");
+    }
+
+    function typeStoryLine(lineIndex) {
+      if (lineIndex >= spans.length) {
+        done = true;
+        preview.addClass("is-complete");
+        return;
+      }
+      var span = spans[lineIndex];
+      var text = sourceLines[lineIndex] || "";
+      var charIndex = 0;
+      function tick() {
+        span.textContent = text.slice(0, charIndex);
+        if (charIndex <= text.length) {
+          charIndex += 1;
+          timers.push(setTimeout(tick, 36));
+        } else {
+          timers.push(setTimeout(function () {
+            typeStoryLine(lineIndex + 1);
+          }, 200));
+        }
+      }
+      tick();
+    }
+
+    typeStoryLine(0);
+    preview.on("click", function () {
+      if (!done) {
+        finishStoryDescription();
+      }
+    });
+  }
+
+  $(event.content).find(".command-input-wrap input").on("keydown", function (ev) {
+    if (ev.key === "Enter") {
+      ev.preventDefault();
+      setup.runCommand(this.value);
+      State.variables.input = "";
+      Engine.play("Game");
+    }
+  });
+
+  setTimeout(function () {
+    window.scrollTo(0, 0);
+    setup.replaceBrowserState();
+  }, 0);
+});
+
+window.addEventListener("popstate", function (event) {
+  if (event.state && event.state.key === setup.historyStateKey && event.state.snapshot) {
+    setup.applyProgress(event.state.snapshot);
+    Engine.play("Game");
+  }
+});

@@ -1,5 +1,7 @@
 node_modules/
 dist/
-.vs/
+.cache/
 *.log
-ui-draft-preview.jpg
+*.tmp
+*.png
+!docs/**/*.png

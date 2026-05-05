@@ -1,22 +1,24 @@
 # 第一学院规则档案
 
-SugarCube/Twine 文字解谜项目。玩家通过英文命令检索损坏硬盘中的档案、整理规则怪谈，并逐步还原第一学院的故事。
+一个使用 SugarCube/Twine 制作的纯文字解谜游戏框架。玩家通过英文命令检索损坏硬盘中的档案，逐步发现校园规则、故事真相和隐藏命令。
 
-## 常用命令
+## 开发命令
 
 ```powershell
 npm install
 npm run build
 npm run watch
+npm run serve
+npm run test:smoke
 ```
 
-构建后的游戏在 `dist/index.html`。
+构建后的游戏位于 `dist/index.html`。`.twee` 是正式源文件，Twine GUI 只作为地图查看和临时编辑辅助；如果在 GUI 中修改内容，请把最终改动同步回 `.twee` 再提交 Git。
 
-## 分工建议
+项目内置 `storyformats/sugarcube-2/format.js`，所以构建不依赖本机 Twine GUI。
 
-- 框架与系统：`src/twee/system`
-- 剧情与档案：`src/twee/story`
-- 样式：`src/twee/system/StoryStylesheet.twee`
-- 设计草稿记录：`docs/ui-notes.md`
+## 分工
 
-剧情作者主要新增或修改 `src/twee/story/*.twee` 中的 `passage` 和 `setup.archive` 数据即可。
+- 框架与命令系统：`src/twee/system`
+- 剧情、档案和章节入口：`src/twee/story`
+- 写作规范：`docs/writing-guide.md`
+- UI 骨架说明：`docs/ui-notes.md`

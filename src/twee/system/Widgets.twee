@@ -1,59 +1,198 @@
 :: Widgets [widget]
+<<widget "aboutPanel">>
+  <main class="app-shell">
+    <section class="content-panel document-panel">
+      <button type="button" class="about-back" data-menu-action="home">← 返回</button>
+      <article>
+        <h1>关于游戏</h1>
+        <p>这是一个类似 Type Help 的纯文字解谜框架。玩家通过英文命令检索档案，逐步发现故事、规则与命令本身。</p>
+        <p>当前版本优先搭建系统框架，剧情文本会由独立 .twee 文件持续扩展。</p>
+      </article>
+      <<commandInput>>
+    </section>
+  </main>
+<</widget>>
+
+<<widget "gameShell">>
+  <<if not $introCompleted>>
+    <<introShell>>
+  <<elseif $menuMode is "game">>
+    <<gamePanel>>
+  <<else>>
+    <<entryPanel>>
+  <</if>>
+<</widget>>
+
+<<widget "entryPanel">>
+  <main class="entry-shell">
+    <section class="entry-panel">
+      <<if $menuMode is "new-story" or $menuMode is "archive">>
+        <<storySidebar>>
+        <button type="button" class="menu-back" data-menu-action="home">← 返回</button>
+      <</if>>
+      <<if $menuMode is "archive" and $selectedStory neq "">>
+        <<saveSidebar>>
+      <</if>>
+      <div class="entry-center">
+        <<if $menuMode is "home">>
+          <h1>欢迎来到第一学院</h1>
+          <div class="entry-actions">
+            <button type="button" data-menu-action="new-story">开始新故事</button>
+            <button type="button" data-menu-action="archive">档案</button>
+            <button type="button" data-menu-action="about">关于游戏</button>
+          </div>
+        <</if>>
+        <<if $menuMode is "new-story" and $selectedStory neq "">>
+          <<storyPreview>>
+        <</if>>
+      </div>
+    </section>
+  </main>
+<</widget>>
+
+<<widget "storySidebar">>
+  <aside class="menu-sidebar story-list">
+    <<if $selectedStory is "first-academy">>
+      <button type="button" data-story-id="first-academy" class="story-button is-active">第一学院</button>
+    <<else>>
+      <button type="button" data-story-id="first-academy" class="story-button">第一学院</button>
+    <</if>>
+  </aside>
+<</widget>>
+
+<<widget "saveSidebar">>
+  <<set _saves to setup.listStorySaves($selectedStory)>>
+  <aside class="menu-sidebar save-list">
+    <<if _saves.length is 0>>
+      <div class="empty-save">不存在档案</div>
+    <<else>>
+      <<for _save range _saves>>
+        <<capture _save>>
+          <div class="save-button-wrap">
+          <<button _save.name>>
+            <<if setup.loadStorySave($selectedStory, _save.id)>>
+              <<run setup.persistProgress()>>
+              <<run setup.pushBrowserState()>>
+              <<replace "#app-root">><<gameShell>><</replace>>
+            <</if>>
+          <</button>>
+          <small><<= _save.updatedAt >></small>
+          </div>
+        <</capture>>
+      <</for>>
+    <</if>>
+  </aside>
+<</widget>>
+
+<<widget "storyPreview">>
+  <<set _story to setup.getStory($selectedStory)>>
+  <<if _story>>
+    <div class="story-preview">
+      <div class="story-description">
+        <<for _line range _story.description>>
+          <p><span class="story-type-line"></span></p>
+        <</for>>
+      </div>
+      <div class="story-start-actions">
+        <button type="button" data-start-story="first-academy">开始新游戏</button>
+        <button type="button" data-continue-story="first-academy">继续游戏</button>
+      </div>
+    </div>
+  <</if>>
+<</widget>>
+
+<<widget "gamePanel">>
+  <main class="app-shell">
+    <section class="content-panel">
+      <<if $view is "rules">>
+        <<ruleWorksheet>>
+      <<elseif $view is "doc">>
+        <<docViewer>>
+      <<else>>
+        <<singleTerminal>>
+      <</if>>
+      <<commandInput>>
+    </section>
+  </main>
+<</widget>>
+
+<<widget "introShell">>
+  <<set _page to setup.introPages[$introPage]>>
+  <main class="intro-shell">
+    <<if $introPage > 0>>
+      <button type="button" class="intro-back" aria-label="返回">←</button>
+    <</if>>
+    <section class="intro-panel">
+      <div class="intro-page-copy">
+        <<for _line range _page.lines>>
+          <p><span class="type-line"></span></p>
+        <</for>>
+      </div>
+    </section>
+  </main>
+<</widget>>
+
 <<widget "commandInput">>
-  <div class="command-row">
+  <div class="command-input-wrap">
     <<textbox "$input" "" autofocus>>
-    <<button "Enter">>
-      <<run setup.runCommand($input)>>
-      <<set $input to "">>
-      <<replace "#game-root">><<display "Game">><</replace>>
-    <</button>>
   </div>
 <</widget>>
 
-<<widget "terminal">>
-  <div class="terminal" id="terminal-output">
-    <<for _line range $output>>
-      <div class="terminal-line <<= _line.kind >>"><<= _line.text>></div>
-    <</for>>
-  </div>
+<<widget "singleTerminal">>
+  <<if $screenKind is "intro">>
+    <div class="intro-copy">
+      <<for _line range $screenLines>>
+        <p><span class="type-line"><<= _line>></span></p>
+      <</for>>
+    </div>
+  <<else>>
+    <div class="terminal-card">
+      <p class="terminal-command">&gt; <<= $currentCommand>></p>
+      <ul>
+        <<for _line range $screenLines>>
+          <li><<= _line>></li>
+        <</for>>
+      </ul>
+    </div>
+  <</if>>
 <</widget>>
 
 <<widget "docViewer">>
   <<set _doc to setup.findDoc($activeDoc)>>
-  <<if _doc>>
-    <article class="document">
-      <div class="doc-id"><<= _doc.id>> / <<= _doc.type>> / <<= _doc.chapter>></div>
-      <h2><<= _doc.title>></h2>
+  <<if _doc and setup.isUnlocked(_doc)>>
+    <article class="document-panel">
+      <p class="doc-meta"><<= _doc.id >> / <<= _doc.type >> / <<= _doc.chapter >></p>
+      <h1><<= _doc.title >></h1>
       <<for _p range _doc.body>>
-        <p><<= _p>></p>
+        <p><<= _p >></p>
       <</for>>
       <<if _doc.links.length>>
-        <p class="doc-id">links: <<= _doc.links.join(", ")>></p>
+        <p class="doc-meta">links: <<= _doc.links.join(", ") >></p>
       <</if>>
     </article>
   <<else>>
-    <article class="document">
-      <h2>未选择档案</h2>
-      <p>输入 <code>doc</code> 查看已恢复档案，或输入 <code>open iv-000</code> 打开邀请函。</p>
-    </article>
+    <div class="intro-copy">
+      <p><span class="type-line">不存在档案</span></p>
+    </div>
   <</if>>
 <</widget>>
 
 <<widget "ruleWorksheet">>
-  <section class="rules">
-    <h2>规则怪谈填写表</h2>
-    <p>把你从档案里推理出的缺失字段填入。最后一条规则将由系统特别处理。</p>
+  <section class="rules-panel">
+    <h1>规则怪谈填写表</h1>
     <<for _rule range setup.rules>>
       <div class="rule-card">
-        <h3><<= _rule.title>></h3>
-        <p><<= _rule.text>></p>
-        <<for _i to 0; _i lt _rule.answer.length; _i++>>
-          <<set _key to _rule.id + "-" + _i>>
-          <<textbox "$ruleInputs[_key]" "" placeholder "缺失字段">>
-        <</for>>
+        <h2><<= _rule.title >></h2>
+        <p><<= _rule.text >></p>
+        <div class="rule-inputs">
+          <<for _i to 0; _i lt _rule.answer.length; _i++>>
+            <<set _key to _rule.id + "-" + _i>>
+            <<textbox "$ruleInputs[_key]" "" placeholder "缺失字段">>
+          <</for>>
+        </div>
       </div>
     <</for>>
-    <<button "提交校验" class "chapter-button">>
+    <<button "提交校验" class "rule-submit">>
       <<set _ok to true>>
       <<for _rule range setup.rules>>
         <<for _i to 0; _i lt _rule.answer.length; _i++>>
@@ -64,11 +203,12 @@
         <</for>>
       <</for>>
       <<if _ok>>
-        <<run setup.pushOutput("system", "Rule fragments accepted. The archive becomes quieter.")>>
+        <<run setup.setScreen("terminal", "rule", "", ["Rule fragments accepted. The archive becomes quieter."], "rule")>>
       <<else>>
-        <<run setup.pushOutput("error", "Some fields conflict with recovered files.")>>
+        <<run setup.setScreen("terminal", "rule", "", ["Some fields conflict with recovered files."], "error")>>
       <</if>>
-      <<replace "#game-root">><<display "Game">><</replace>>
+      <<run setup.persistProgress()>>
+      <<replace "#app-root">><<gameShell>><</replace>>
     <</button>>
   </section>
 <</widget>>
