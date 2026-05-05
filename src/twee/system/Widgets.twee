@@ -2,7 +2,6 @@
 <<widget "aboutPanel">>
   <main class="app-shell">
     <section class="content-panel document-panel">
-      <button type="button" class="about-back" data-menu-action="home">← 返回</button>
       <article>
         <h1>关于游戏</h1>
         <p>这是一个类似 Type Help 的纯文字解谜框架。玩家通过英文命令检索档案，逐步发现故事、规则与命令本身。</p>
@@ -28,20 +27,17 @@
     <section class="entry-panel">
       <<if $menuMode is "new-story" or $menuMode is "archive">>
         <<storySidebar>>
-        <button type="button" class="menu-back" data-menu-action="home">← 返回</button>
       <</if>>
       <<if $menuMode is "archive" and $selectedStory neq "">>
         <<saveSidebar>>
       <</if>>
       <div class="entry-center">
-        <<if $menuMode is "home">>
-          <h1>欢迎来到第一学院</h1>
-          <div class="entry-actions">
-            <button type="button" data-menu-action="new-story">开始新故事</button>
-            <button type="button" data-menu-action="archive">档案</button>
-            <button type="button" data-menu-action="about">关于游戏</button>
-          </div>
-        <</if>>
+        <h1>欢迎来到第一学院</h1>
+        <div class="entry-actions">
+          <button type="button" data-menu-action="new-story">开始新故事</button>
+          <button type="button" data-menu-action="archive">档案</button>
+          <button type="button" data-menu-action="about">关于游戏</button>
+        </div>
         <<if $menuMode is "new-story" and $selectedStory neq "">>
           <<storyPreview>>
         <</if>>

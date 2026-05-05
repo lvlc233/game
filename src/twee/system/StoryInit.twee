@@ -616,15 +616,11 @@ $(document).on(":passagerender", function (event) {
     typeLine(0);
 
     introShell.on("click", function () {
-      console.log("Intro shell clicked, introDone:", introDone);
       if (!introDone) {
         finishIntroPage();
-        console.log("Finished intro page, waiting for next click");
         return;
       }
-      console.log("Advancing to next intro page or menu");
       setup.nextIntroPage();
-      console.log("Playing Game passage");
       Engine.play("Game");
     });
 
@@ -639,15 +635,10 @@ $(document).on(":passagerender", function (event) {
   $(event.content).find("[data-menu-action]").on("click", function () {
     var action = this.getAttribute("data-menu-action");
     if (action === "about") {
-      Engine.play("About");
+      setup.showIntroAgain();
     } else {
       setup.openMenu(action);
-      Engine.play("Game");
     }
-  });
-
-  $(event.content).find(".about-back").on("click", function () {
-    setup.openMenu("home");
     Engine.play("Game");
   });
 
