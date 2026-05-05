@@ -1,0 +1,22 @@
+{
+  "name": "mygame",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "prebuild": "node -e \"require('fs').mkdirSync('dist',{recursive:true})\"",
+    "build": "twee-ts -f sugarcube-2 -o dist/index.html src/twee",
+    "watch": "twee-ts -f sugarcube-2 -w -o dist/index.html src/twee",
+    "serve": "http-server dist -p 4173 -c-1",
+    "test:smoke": "node scripts/smoke-test.cjs"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "A SugarCube/Twine command-driven text mystery prototype.",
+  "devDependencies": {
+    "@rohal12/twee-ts": "^1.14.0",
+    "http-server": "^14.1.1",
+    "playwright": "^1.59.1"
+  }
+}

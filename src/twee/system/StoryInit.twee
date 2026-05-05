@@ -1,0 +1,245 @@
+:: StoryInit [script]
+Config.history.maxStates = 1;
+Config.saves.autosave = true;
+
+setup.commandList = [
+  { name: "help", text: "show known commands" },
+  { name: "doc", text: "list readable archive files" },
+  { name: "open id", text: "open an archive by prefix, e.g. open sc-001" },
+  { name: "find keyword", text: "search damaged disk fragments" },
+  { name: "note", text: "show investigation notes" },
+  { name: "rule", text: "open the rule worksheet" },
+  { name: "link", text: "show discovered document relations" },
+  { name: "save", text: "save current state" },
+  { name: "load", text: "load a saved state" },
+  { name: "back", text: "return to the entrance screen" }
+];
+
+setup.archive = [
+  {
+    id: "iv-000-opening",
+    type: "invitation",
+    title: "第一学院第三十六届开学典礼邀请函",
+    chapter: "第零章",
+    keywords: ["邀请函", "opening", "ceremony", "campus", "rules"],
+    unlocked: true,
+    links: ["sc-001-code"],
+    body: [
+      "尊敬的各位教职工、在校学子、学生家长及社会各界来宾：",
+      "谨以此函，诚挚邀请您莅临我校，出席第一学院第三十六届开学典礼。",
+      "活动全程，请全体到场人员严格遵守第一学院各项校园规章制度。若您尚不了解校内规范条例，可自行搜索《第一学院校园管理准则》查阅完整版内容，自觉遵守各项要求。",
+      "望各位按时赴约，恪守规则，有序参与本次典礼。",
+      "第一学院",
+      "（日期留白）"
+    ]
+  },
+  {
+    id: "sc-001-code",
+    type: "school-code",
+    title: "第一学院校园管理准则（残页）",
+    chapter: "第零章",
+    keywords: ["校园管理准则", "rules", "badge", "gate", "校徽", "正门"],
+    unlocked: true,
+    links: ["nt-014-badge", "rp-002-gate"],
+    body: [
+      "文件由机房脱机备份盘恢复，多个字段缺损。",
+      "一、本校仅存在_色校徽，任何时刻请务必佩戴好你的白色校徽。",
+      "二、本校正门每日__:__开启，__:__准时关闭。__:__后若你在校外，无论看到校门是否开启，都绝对不要进入。",
+      "页脚批注：缺失内容疑似被人工擦除，擦除痕迹集中在颜色与时间。"
+    ]
+  },
+  {
+    id: "nt-014-badge",
+    type: "note",
+    title: "黑板角落的值日记录",
+    chapter: "故事一",
+    keywords: ["校徽", "白色", "红色", "badge", "体育馆", "goat"],
+    unlocked: false,
+    links: ["sc-001-code", "di-021-sheep"],
+    body: [
+      "粉笔字被雨水洇开，只剩几行能辨认。",
+      "羊今天没有佩戴白色校徽。有人说她胸前那枚是红的，可老师说本校从未发放过红色校徽。",
+      "体育馆门口的监控在 01:58 到 02:07 之间全部失效。"
+    ]
+  },
+  {
+    id: "rp-002-gate",
+    type: "report",
+    title: "门卫室交接记录",
+    chapter: "故事一",
+    keywords: ["正门", "gate", "open", "close", "22:30", "06:00"],
+    unlocked: false,
+    links: ["sc-001-code"],
+    body: [
+      "06:00 开门，22:30 闭门。重复三次。",
+      "昨夜 23:11，有学生家长称校门仍然敞开。值班员回答：那不是我们的门。",
+      "记录末尾多出一行不属于任何班次的字迹：不要从第二扇门进来。"
+    ]
+  },
+  {
+    id: "di-021-sheep",
+    type: "diary",
+    title: "羊的匿名帖子摘录",
+    chapter: "故事一",
+    keywords: ["羊", "诅咒", "ritual", "black goat", "children", "wish"],
+    unlocked: false,
+    links: ["nt-014-badge"],
+    body: [
+      "他们把我的名字改成了羊，说羊只会低头。",
+      "我在论坛里搜到了很多报复的方法，大多数都像玩笑，直到那个没有头像的人给我发来仪式步骤。",
+      "他说树林里的孩子会回应孩子的愿望。"
+    ]
+  }
+];
+
+setup.rules = [
+  {
+    id: "rule-1",
+    title: "规则一",
+    text: "本校仅存在_色校徽，任何时刻请务必佩戴好你的白色校徽。若见到佩戴_色校徽的人，无论对方是谁、说什么，都不要对视、不要回应、不要跟随，立刻转身进入最近的___的房间，直到对方离开。",
+    answer: ["白", "红", "亮灯"]
+  },
+  {
+    id: "rule-2",
+    title: "规则二",
+    text: "本校正门每日__:__开启，__:__准时关闭。__:__后若你在校外，无论看到校门是否开启，都绝对不要进入——那不是真正的校门。",
+    answer: ["06:00", "22:30", "22:30"]
+  }
+];
+
+setup.initialState = function () {
+  State.variables.input = "";
+  State.variables.lastInput = "help";
+  State.variables.mode = "terminal";
+  State.variables.activeDoc = "iv-000-opening";
+  State.variables.output = [
+    { kind: "system", text: "FIRST ACADEMY OFFLINE ARCHIVE // recovery shell" },
+    { kind: "system", text: "Type help to inspect available commands." }
+  ];
+  State.variables.unlocked = ["iv-000-opening", "sc-001-code"];
+  State.variables.notes = [
+    "邀请函要求自行搜索《第一学院校园管理准则》。",
+    "档案编号可以只输入前缀，例如 open sc-001。",
+    "部分档案会在 find 命中后自动恢复。"
+  ];
+  State.variables.ruleInputs = {};
+};
+
+setup.findDoc = function (query) {
+  var q = String(query || "").toLowerCase();
+  if (!q) {
+    return null;
+  }
+  return setup.archive.find(function (doc) {
+    return doc.id.toLowerCase() === q || doc.id.toLowerCase().startsWith(q);
+  });
+};
+
+setup.isUnlocked = function (doc) {
+  return State.variables.unlocked.includes(doc.id);
+};
+
+setup.unlock = function (doc) {
+  if (doc && !setup.isUnlocked(doc)) {
+    State.variables.unlocked.push(doc.id);
+    return true;
+  }
+  return false;
+};
+
+setup.pushOutput = function (kind, text) {
+  State.variables.output.push({ kind: kind, text: text });
+  if (State.variables.output.length > 80) {
+    State.variables.output.splice(0, State.variables.output.length - 80);
+  }
+};
+
+setup.runCommand = function (raw) {
+  var input = String(raw || "").trim();
+  if (!input) {
+    return;
+  }
+
+  State.variables.lastInput = input;
+  setup.pushOutput("input", "> " + input);
+
+  var parts = input.split(/\s+/);
+  var command = parts[0].toLowerCase();
+  var arg = input.slice(parts[0].length).trim();
+
+  switch (command) {
+    case "help":
+      setup.pushOutput("result", setup.commandList.map(function (item) {
+        return item.name + " - " + item.text;
+      }).join("\n"));
+      break;
+    case "doc":
+      setup.pushOutput("result", setup.archive.filter(function (doc) {
+        return setup.isUnlocked(doc);
+      }).map(function (doc) {
+        return doc.id + " :: " + doc.title;
+      }).join("\n"));
+      break;
+    case "open":
+      var doc = setup.findDoc(arg);
+      if (!doc) {
+        setup.pushOutput("error", "No archive matches: " + arg);
+      } else if (!setup.isUnlocked(doc)) {
+        setup.pushOutput("error", "Archive exists in index, but data blocks are still damaged.");
+      } else {
+        State.variables.activeDoc = doc.id;
+        setup.pushOutput("result", doc.id + " loaded. " + doc.title);
+      }
+      break;
+    case "find":
+      var key = arg.toLowerCase();
+      var hits = setup.archive.filter(function (doc) {
+        return doc.keywords.some(function (word) {
+          return word.toLowerCase().includes(key) || key.includes(word.toLowerCase());
+        }) || doc.title.toLowerCase().includes(key);
+      });
+      hits.forEach(setup.unlock);
+      setup.pushOutput("result", hits.length
+        ? hits.map(function (doc) { return doc.id + " :: " + doc.title; }).join("\n")
+        : "No readable fragments found.");
+      break;
+    case "note":
+      setup.pushOutput("result", State.variables.notes.map(function (note, i) {
+        return (i + 1) + ". " + note;
+      }).join("\n"));
+      break;
+    case "link":
+      setup.pushOutput("result", setup.archive.filter(function (doc) {
+        return setup.isUnlocked(doc);
+      }).map(function (doc) {
+        return doc.id + " -> " + (doc.links.length ? doc.links.join(", ") : "none");
+      }).join("\n"));
+      break;
+    case "rule":
+      State.variables.mode = "rules";
+      setup.pushOutput("system", "Rule worksheet opened.");
+      break;
+    case "save":
+      Save.slots.save(0, "第一学院自动存档");
+      setup.pushOutput("system", "Saved to slot 1.");
+      break;
+    case "load":
+      if (Save.slots.has(0)) {
+        Save.slots.load(0);
+      } else {
+        setup.pushOutput("error", "No save exists in slot 1.");
+      }
+      break;
+    case "back":
+      Engine.play("Start");
+      break;
+    default:
+      var direct = setup.findDoc(command);
+      if (direct && setup.isUnlocked(direct)) {
+        State.variables.activeDoc = direct.id;
+        setup.pushOutput("result", direct.id + " loaded. " + direct.title);
+      } else {
+        setup.pushOutput("error", "Unknown command or archive prefix: " + command);
+      }
+  }
+};

@@ -1,0 +1,16 @@
+:: StoryData
+{
+  "ifid": "0E7F8E96-5E55-4E7A-B7E6-9E2E6E8D1D36",
+  "format": "SugarCube",
+  "format-version": "2.36.1",
+  "start": "Start",
+  "tag-colors": {
+    "system": "gray",
+    "story": "green",
+    "archive": "blue"
+  },
+  "zoom": 1
+}
+
+:: StoryTitle
+第一学院规则档案

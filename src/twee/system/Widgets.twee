@@ -1,0 +1,74 @@
+:: Widgets [widget]
+<<widget "commandInput">>
+  <div class="command-row">
+    <<textbox "$input" "" autofocus>>
+    <<button "Enter">>
+      <<run setup.runCommand($input)>>
+      <<set $input to "">>
+      <<replace "#game-root">><<display "Game">><</replace>>
+    <</button>>
+  </div>
+<</widget>>
+
+<<widget "terminal">>
+  <div class="terminal" id="terminal-output">
+    <<for _line range $output>>
+      <div class="terminal-line <<= _line.kind >>"><<= _line.text>></div>
+    <</for>>
+  </div>
+<</widget>>
+
+<<widget "docViewer">>
+  <<set _doc to setup.findDoc($activeDoc)>>
+  <<if _doc>>
+    <article class="document">
+      <div class="doc-id"><<= _doc.id>> / <<= _doc.type>> / <<= _doc.chapter>></div>
+      <h2><<= _doc.title>></h2>
+      <<for _p range _doc.body>>
+        <p><<= _p>></p>
+      <</for>>
+      <<if _doc.links.length>>
+        <p class="doc-id">links: <<= _doc.links.join(", ")>></p>
+      <</if>>
+    </article>
+  <<else>>
+    <article class="document">
+      <h2>未选择档案</h2>
+      <p>输入 <code>doc</code> 查看已恢复档案，或输入 <code>open iv-000</code> 打开邀请函。</p>
+    </article>
+  <</if>>
+<</widget>>
+
+<<widget "ruleWorksheet">>
+  <section class="rules">
+    <h2>规则怪谈填写表</h2>
+    <p>把你从档案里推理出的缺失字段填入。最后一条规则将由系统特别处理。</p>
+    <<for _rule range setup.rules>>
+      <div class="rule-card">
+        <h3><<= _rule.title>></h3>
+        <p><<= _rule.text>></p>
+        <<for _i to 0; _i lt _rule.answer.length; _i++>>
+          <<set _key to _rule.id + "-" + _i>>
+          <<textbox "$ruleInputs[_key]" "" placeholder "缺失字段">>
+        <</for>>
+      </div>
+    <</for>>
+    <<button "提交校验" class "chapter-button">>
+      <<set _ok to true>>
+      <<for _rule range setup.rules>>
+        <<for _i to 0; _i lt _rule.answer.length; _i++>>
+          <<set _key to _rule.id + "-" + _i>>
+          <<if ($ruleInputs[_key] || "").trim() neq _rule.answer[_i]>>
+            <<set _ok to false>>
+          <</if>>
+        <</for>>
+      <</for>>
+      <<if _ok>>
+        <<run setup.pushOutput("system", "Rule fragments accepted. The archive becomes quieter.")>>
+      <<else>>
+        <<run setup.pushOutput("error", "Some fields conflict with recovered files.")>>
+      <</if>>
+      <<replace "#game-root">><<display "Game">><</replace>>
+    <</button>>
+  </section>
+<</widget>>

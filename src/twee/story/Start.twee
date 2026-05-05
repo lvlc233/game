@@ -1,0 +1,61 @@
+:: Start [story]
+<<run setup.initialState()>>
+<div class="shell-page">
+  <main class="landing">
+    <section>
+      <h1>第一学院</h1>
+      <p>离线备份盘修复完成。文件索引残缺，检索协议等待输入。</p>
+      <div class="landing-actions">
+        [[开始新故事->Game]]
+        [[档案终端->Game]]
+        [[关于游戏->About]]
+      </div>
+    </section>
+  </main>
+</div>
+
+:: About [story]
+<div class="shell-page">
+  <main class="landing">
+    <section>
+      <h1>关于</h1>
+      <p>这是一个类似 Type Help 的纯文字解谜原型。玩家通过英文命令检索档案，逐步发现故事、规则与命令本身。</p>
+      <p>当前版本用于搭建框架与协作流程，剧情文本会持续扩展。</p>
+      <div class="landing-actions">
+        [[返回->Start]]
+      </div>
+    </section>
+  </main>
+</div>
+
+:: Game [story]
+<div id="game-root">
+  <div class="shell-page">
+    <main class="game-frame">
+      <header class="topbar">
+        <div class="brand">第一学院 / OFFLINE ARCHIVE</div>
+        <div class="status">RECOVERED <<= $unlocked.length >> / <<= setup.archive.length >></div>
+      </header>
+
+      <aside class="sidebar">
+        <h2>故事线</h2>
+        <button class="chapter-button" type="button">第零章：邀请函</button>
+        <button class="chapter-button" type="button">故事一：羊</button>
+        <button class="chapter-button" type="button">规则表</button>
+        <button class="nav-button" onclick="SugarCube.Engine.play('Start')">返回首页</button>
+      </aside>
+
+      <section class="main">
+        <div class="content">
+          <<if $mode is "rules">>
+            <<ruleWorksheet>>
+          <<else>>
+            <<terminal>>
+            <<docViewer>>
+          <</if>>
+        </div>
+        <<commandInput>>
+      </section>
+    </main>
+  </div>
+</div>
