@@ -20,20 +20,21 @@ setup.stories = [
 ];
 
 setup.commands = [
-  { name: "help", text: "查询指令" },
-  { name: "back", text: "回到上一屏（仅故事内）" },
-  { name: "save [名字]", text: "创建命名手动存档" },
-  { name: "saves", text: "列出当前剧本所有存档" },
-  { name: "delete <id|名字>", text: "删除手动存档" },
-  { name: "rename <id|名字> <新名字>", text: "重命名手动存档" },
-  { name: "load", text: "读取主进度" },
-  { name: "doc", text: "列出已解锁文档" },
-  { name: "<档案名>", text: "阅读文档（前缀匹配）" },
-  { name: "find [关键词]", text: "搜索关键词解锁档案" },
-  { name: "note", text: "查阅笔记" },
-  { name: "rule", text: "填写规则表" },
-  { name: "link", text: "查看文档关系" },
-  { name: "reset", text: "清除进度并重新播放介绍" }
+  { name: "help",                       fill: "help",    text: "显示当前可用指令",                                category: "core" },
+  { name: "back",                       fill: "back",    text: "返回上一屏（自动跳过错误屏，仅故事内）",        category: "core" },
+  { name: "home",                       fill: "home",    text: "返回主菜单（先自动存档）",                       category: "core" },
+  { name: "doc",                        fill: "doc",     text: "列出已恢复档案",                                  category: "core" },
+  { name: "<档案 id>",                  fill: "",        text: "输入档案 id 阅读（前缀匹配，例如 sc-001）",       category: "core" },
+  { name: "find <关键词>",              fill: "find ",   text: "在已恢复档案中搜索关键词，命中时尝试恢复其关联档案", category: "core" },
+  { name: "reset",                      fill: "reset",   text: "清除全部进度并重新播放介绍",                      category: "core" },
+  { name: "save [名字]",                fill: "save ",   text: "保存当前进度为命名存档（不带名字会自动生成）",    category: "save" },
+  { name: "saves",                      fill: "saves",   text: "列出当前剧本的所有存档",                          category: "save" },
+  { name: "load [id|名字]",             fill: "load",    text: "无参列出存档，带参直接读档",                      category: "save" },
+  { name: "delete <id|名字>",           fill: "delete ", text: "删除手动存档（不能删除自动存档）",                category: "save" },
+  { name: "rename <id|名字> <新名字>",  fill: "rename ", text: "重命名手动存档",                                  category: "save" },
+  { name: "note",                       fill: "note",    text: "查阅你已记下的线索笔记",                          category: "note" },
+  { name: "rule",                       fill: "rule",    text: "打开规则怪谈填写表",                              category: "rule" },
+  { name: "link",                       fill: "link",    text: "查看档案之间的关联关系",                          category: "link" }
 ];
 
 setup.introPages = [
@@ -61,6 +62,7 @@ setup.archive = [
     title: "第一学院第三十六届开学典礼邀请函",
     keywords: ["邀请函", "opening", "ceremony", "campus", "rules", "准则"],
     unlocked: true,
+    unlocksCommands: ["save"],
     links: ["sc-001-code"],
     body: [
       "尊敬的各位教职工、在校学子、学生家长及社会各界来宾：",
@@ -78,6 +80,7 @@ setup.archive = [
     title: "第一学院校园管理准则（残页）",
     keywords: ["校园管理准则", "rules", "badge", "gate", "校徽", "正门"],
     unlocked: true,
+    unlocksCommands: ["note", "rule", "link"],
     links: ["nt-014-badge", "rp-002-gate"],
     body: [
       "文件由机房脱机备份盘恢复，多个字段缺损。",
@@ -178,7 +181,8 @@ setup.defaultState = function () {
     }),
     notes: setup.defaultNotes.slice(),
     ruleInputs: {},
-    gameStack: []
+    gameStack: [],
+    unlockedCommands: []
   };
 };
 
@@ -209,7 +213,8 @@ setup.snapshot = function () {
     unlocked: v.unlocked,
     notes: v.notes,
     ruleInputs: v.ruleInputs,
-    gameStack: v.gameStack
+    gameStack: v.gameStack,
+    unlockedCommands: v.unlockedCommands
   };
 };
 
@@ -424,6 +429,32 @@ setup.unlock = function (doc) {
   return false;
 };
 
+setup.unlockCommands = function (doc) {
+  if (!doc || !Array.isArray(doc.unlocksCommands)) {
+    return [];
+  }
+  var v = State.variables;
+  if (!Array.isArray(v.unlockedCommands)) {
+    v.unlockedCommands = [];
+  }
+  var newly = [];
+  doc.unlocksCommands.forEach(function (cat) {
+    if (v.unlockedCommands.indexOf(cat) < 0) {
+      v.unlockedCommands.push(cat);
+      newly.push(cat);
+    }
+  });
+  return newly;
+};
+
+setup.isCommandUnlocked = function (category) {
+  if (!category || category === "core") {
+    return true;
+  }
+  var arr = State.variables.unlockedCommands || [];
+  return arr.indexOf(category) >= 0;
+};
+
 setup.setScreen = function (view, command, title, lines, kind) {
   var v = State.variables;
   if (v.menuMode === "game" && v.view) {
@@ -450,16 +481,28 @@ setup.setScreen = function (view, command, title, lines, kind) {
 };
 
 setup.renderCommands = function () {
-  return setup.commands.map(function (item) {
-    return item.name + ": " + item.text;
-  });
+  return setup.commands
+    .filter(function (item) {
+      return setup.isCommandUnlocked(item.category);
+    })
+    .map(function (item) {
+      return {
+        cmd: item.fill || "",
+        display: item.name,
+        note: item.text
+      };
+    });
 };
 
 setup.listUnlockedDocs = function () {
   return setup.archive.filter(function (doc) {
     return setup.isUnlocked(doc);
   }).map(function (doc) {
-    return doc.id + " :: " + doc.title;
+    return {
+      cmd: doc.id,
+      display: doc.id + " : " + doc.title,
+      note: doc.chapter
+    };
   });
 };
 
@@ -469,13 +512,19 @@ setup.search = function (term) {
     return [];
   }
   return setup.archive.filter(function (doc) {
-    var titleHit = doc.title.toLowerCase().includes(key);
-    var idHit = doc.id.toLowerCase().includes(key);
+    if (!setup.isUnlocked(doc)) {
+      return false;
+    }
+    var titleHit = doc.title.toLowerCase().indexOf(key) >= 0;
+    var idHit = doc.id.toLowerCase().indexOf(key) >= 0;
     var keywordHit = doc.keywords.some(function (word) {
-      var lower = word.toLowerCase();
-      return lower.includes(key) || key.includes(lower);
+      var lower = String(word).toLowerCase();
+      return lower.indexOf(key) >= 0 || key.indexOf(lower) >= 0;
     });
-    return titleHit || idHit || keywordHit;
+    var bodyHit = (doc.body || []).some(function (line) {
+      return String(line).toLowerCase().indexOf(key) >= 0;
+    });
+    return titleHit || idHit || keywordHit || bodyHit;
   });
 };
 
@@ -493,6 +542,7 @@ setup.openDoc = function (arg) {
     return;
   }
   State.variables.activeDoc = doc.id;
+  setup.unlockCommands(doc);
   setup.setScreen("doc", doc.id, doc.title, doc.body, "doc");
 };
 
@@ -515,33 +565,103 @@ setup.runCommand = function (raw) {
     case "start":
       setup.openDoc("iv-000-opening");
       break;
+    case "home":
+      setup.autoSaveStory();
+      State.variables.menuMode = "home";
+      setup.persistProgress();
+      setup.pushBrowserState();
+      return;
     case "doc":
-      setup.setScreen("terminal", "doc", "", setup.listUnlockedDocs(), "doc-list");
+      var unlockedDocs = setup.listUnlockedDocs();
+      if (unlockedDocs.length === 0) {
+        setup.setScreen("terminal", "doc", "", ["还没有任何已恢复的档案。"], "doc-list");
+      } else {
+        var docLines = ["已恢复档案（" + unlockedDocs.length + " 份，点击或输入 id 阅读）："];
+        unlockedDocs.forEach(function (entry) {
+          docLines.push({ cmd: entry.cmd, display: "  " + entry.display, note: entry.note });
+        });
+        setup.setScreen("terminal", "doc", "", docLines, "doc-list");
+      }
       break;
     case "open":
       setup.openDoc(arg);
       break;
     case "find":
+      if (!arg) {
+        setup.setScreen("terminal", "find", "", ["用法：find <关键词>"], "error");
+        break;
+      }
       var hits = setup.search(arg);
-      hits.forEach(setup.unlock);
-      setup.setScreen("terminal", "find", "", hits.length
-        ? hits.map(function (doc) { return doc.id + " :: " + doc.title; })
-        : ["No readable fragments found."], "find");
+      var newlyRecovered = [];
+      hits.forEach(function (doc) {
+        (doc.links || []).forEach(function (linkId) {
+          var linked = setup.archive.find(function (d) { return d.id === linkId; });
+          if (linked && !setup.isUnlocked(linked)) {
+            State.variables.unlocked.push(linkId);
+            newlyRecovered.push(linked);
+          }
+        });
+      });
+      var findLines = [];
+      if (hits.length === 0) {
+        findLines.push("没有在已恢复档案中找到关键词「" + arg + "」。");
+        findLines.push("（提示：先阅读已恢复档案，从其中选取词汇 find）");
+      } else {
+        findLines.push("命中关键词「" + arg + "」的档案：");
+        hits.forEach(function (doc) {
+          findLines.push({
+            cmd: doc.id,
+            display: "  " + doc.id + " : " + doc.title,
+            note: doc.chapter
+          });
+        });
+        if (newlyRecovered.length > 0) {
+          findLines.push("");
+          findLines.push("以下关联档案已恢复：");
+          newlyRecovered.forEach(function (doc) {
+            findLines.push({
+              cmd: doc.id,
+              display: "  " + doc.id + " : " + doc.title,
+              note: "新恢复"
+            });
+          });
+        } else {
+          findLines.push("（未发现新的可恢复档案）");
+        }
+      }
+      setup.setScreen("terminal", "find " + arg, "", findLines, "find");
       break;
     case "note":
-      setup.setScreen("terminal", "note", "", State.variables.notes.map(function (note, i) {
-        return (i + 1) + ". " + note;
-      }), "note");
+      var noteLines = State.variables.notes && State.variables.notes.length > 0
+        ? ["已记录的线索："].concat(State.variables.notes.map(function (note, i) {
+            return "  " + (i + 1) + ". " + note;
+          }))
+        : ["还没有任何笔记。"];
+      setup.setScreen("terminal", "note", "", noteLines, "note");
       break;
     case "rule":
       setup.setScreen("rules", "rule", "规则怪谈填写表", [], "rules");
       break;
     case "link":
-      setup.setScreen("terminal", "link", "", setup.archive.filter(function (doc) {
-        return setup.isUnlocked(doc);
-      }).map(function (doc) {
-        return doc.id + " -> " + (doc.links.length ? doc.links.join(", ") : "none");
-      }), "link");
+      var linkUnlocked = setup.archive.filter(function (d) { return setup.isUnlocked(d); });
+      if (linkUnlocked.length === 0) {
+        setup.setScreen("terminal", "link", "", ["还没有任何已恢复档案。"], "link");
+      } else {
+        var linkLines = ["档案关联关系（点击档案 id 阅读）："];
+        linkUnlocked.forEach(function (doc) {
+          var rhs = (doc.links || []).map(function (id) {
+            var found = setup.archive.find(function (d) { return d.id === id; });
+            var unlocked = found && setup.isUnlocked(found);
+            return id + (unlocked ? "" : "（未恢复）");
+          }).join(", ") || "—";
+          linkLines.push({
+            cmd: doc.id,
+            display: "  " + doc.id + " : " + doc.title,
+            note: "→ " + rhs
+          });
+        });
+        setup.setScreen("terminal", "link", "", linkLines, "link");
+      }
       break;
     case "save":
       var saveStoryId = State.variables.selectedStory || "first-academy";
@@ -549,18 +669,23 @@ setup.runCommand = function (raw) {
       setup.upsertSave(saveStoryId, setup.makeSave(saveStoryId, "manual", customName));
       setup.setScreen("terminal", "save", "", [
         "已保存：" + customName,
-        "使用 saves 查看所有存档；使用 delete <id|名字> 删除手动存档；使用 rename <id|名字> <新名字> 重命名。"
+        "saves 查看全部，delete <id|名字> 删除，rename <id|名字> <新名字> 重命名。"
       ], "save");
       break;
     case "saves":
       var listStoryId = State.variables.selectedStory || "first-academy";
       var allSaves = setup.listStorySaves(listStoryId);
       if (allSaves.length === 0) {
-        setup.setScreen("terminal", "saves", "", ["还没有存档。"], "save-list");
+        setup.setScreen("terminal", "saves", "", ["还没有存档。输入 save 或 save <名字> 创建第一个。"], "save-list");
       } else {
-        var saveLines = allSaves.map(function (s) {
+        var saveLines = ["存档列表（点击或输入 load <id> 加载）："];
+        allSaves.forEach(function (s) {
           var prefix = s.type === "auto" ? "[auto]   " : "[manual] ";
-          return prefix + s.id + "  ::  " + s.name + "  ::  " + s.updatedAt;
+          saveLines.push({
+            cmd: "load " + s.id,
+            display: "  " + prefix + s.id + " : " + s.name + " : " + s.updatedAt,
+            note: ""
+          });
         });
         setup.setScreen("terminal", "saves", "", saveLines, "save-list");
       }
@@ -591,7 +716,7 @@ setup.runCommand = function (raw) {
       var newName = arg.slice(firstSpace).trim();
       var renTarget = setup.findSave(renStoryId, renameKey);
       if (renTarget && renTarget.id !== "auto" && setup.renameSave(renStoryId, renTarget.id, newName)) {
-        setup.setScreen("terminal", "rename", "", ["已重命名：" + renTarget.id + " -> " + newName], "save");
+        setup.setScreen("terminal", "rename", "", ["已重命名：" + renTarget.id + " → " + newName], "save");
       } else if (renTarget && renTarget.id === "auto") {
         setup.setScreen("terminal", "rename", "", ["不能重命名自动存档。"], "error");
       } else {
@@ -599,12 +724,37 @@ setup.runCommand = function (raw) {
       }
       break;
     case "load":
-      var progress = setup.readProgress();
-      if (progress) {
-        setup.applyProgress(progress);
-        setup.setScreen("terminal", "load", "", ["已恢复主进度。"], "save");
+      var loadStoryId = State.variables.selectedStory || "first-academy";
+      if (!arg) {
+        var loadList = setup.listStorySaves(loadStoryId);
+        if (loadList.length === 0) {
+          setup.setScreen("terminal", "load", "", ["还没有可读取的存档。"], "error");
+        } else {
+          var loadLines = ["可读取的存档（点击或输入 load <id> 加载）："];
+          loadList.forEach(function (s) {
+            var prefix = s.type === "auto" ? "[auto]   " : "[manual] ";
+            loadLines.push({
+              cmd: "load " + s.id,
+              display: "  " + prefix + s.id + " : " + s.name + " : " + s.updatedAt,
+              note: ""
+            });
+          });
+          setup.setScreen("terminal", "load", "", loadLines, "load");
+        }
       } else {
-        setup.setScreen("terminal", "load", "", ["没有可读取的存档。"], "error");
+        var loadTarget = setup.findSave(loadStoryId, arg);
+        if (loadTarget) {
+          setup.applyProgress(loadTarget.snapshot);
+          State.variables.menuMode = "game";
+          State.variables.selectedStory = loadStoryId;
+          setup.setScreen("terminal", "load " + arg, "", [
+            "已读取存档：" + loadTarget.name + "（" + (loadTarget.type === "auto" ? "自动" : "手动") + "）",
+            "时间：" + loadTarget.updatedAt,
+            "继续输入指令进行交互。"
+          ], "save");
+        } else {
+          setup.setScreen("terminal", "load " + arg, "", ["未找到存档：" + arg], "error");
+        }
       }
       break;
     case "reset":
@@ -621,20 +771,35 @@ setup.runCommand = function (raw) {
       if (State.variables.menuMode !== "game") {
         return;
       }
-      if (!Array.isArray(State.variables.gameStack) || State.variables.gameStack.length === 0) {
+      var stack = State.variables.gameStack;
+      if (!Array.isArray(stack) || stack.length === 0) {
         State.variables.view = "terminal";
         State.variables.currentCommand = "back";
         State.variables.screenTitle = "";
         State.variables.screenLines = ["已经是最早一屏，无法继续返回。"];
         State.variables.screenKind = "error";
       } else {
-        var prevSnap = State.variables.gameStack.pop();
-        State.variables.view = prevSnap.view;
-        State.variables.currentCommand = prevSnap.currentCommand;
-        State.variables.screenTitle = prevSnap.screenTitle;
-        State.variables.screenLines = prevSnap.screenLines;
-        State.variables.screenKind = prevSnap.screenKind;
-        State.variables.activeDoc = prevSnap.activeDoc;
+        var idx = stack.length - 1;
+        while (idx >= 0 && stack[idx].screenKind === "error") {
+          idx--;
+        }
+        if (idx < 0) {
+          stack.length = 0;
+          State.variables.view = "terminal";
+          State.variables.currentCommand = "back";
+          State.variables.screenTitle = "";
+          State.variables.screenLines = ["再没有可返回的档案屏。"];
+          State.variables.screenKind = "error";
+        } else {
+          var restore = stack[idx];
+          stack.length = idx;
+          State.variables.view = restore.view;
+          State.variables.currentCommand = restore.currentCommand;
+          State.variables.screenTitle = restore.screenTitle;
+          State.variables.screenLines = restore.screenLines;
+          State.variables.screenKind = restore.screenKind;
+          State.variables.activeDoc = restore.activeDoc;
+        }
       }
       setup.persistProgress();
       setup.pushBrowserState();
@@ -826,6 +991,41 @@ $(document).on(":passagerender", function (event) {
       setup.pushBrowserState();
       Engine.play("Game");
     }
+  });
+
+  $(event.content).find("[data-fill]").on("click", function (ev) {
+    ev.stopPropagation();
+    var fill = this.getAttribute("data-fill") || "";
+    State.variables.input = fill;
+    var input = $(event.content).find(".command-input-wrap input");
+    if (input.length) {
+      input.val(fill).trigger("focus");
+      var el = input.get(0);
+      if (el && typeof el.setSelectionRange === "function") {
+        var pos = fill.length;
+        try { el.setSelectionRange(pos, pos); } catch (e) {}
+      }
+    }
+  });
+
+  $(event.content).find("[data-recall]").on("click", function (ev) {
+    if ($(ev.target).closest(".cmd-tap, [data-cmd]").length) {
+      return;
+    }
+    var recall = this.getAttribute("data-recall") || "";
+    setup.runCommand("back");
+    if (recall) {
+      State.variables.input = recall;
+    }
+    Engine.play("Game");
+  });
+
+  $(event.content).find("[data-cmd]").on("click", function (ev) {
+    ev.stopPropagation();
+    var cmd = this.getAttribute("data-cmd");
+    if (!cmd) return;
+    setup.runCommand(cmd);
+    Engine.play("Game");
   });
 
   $(event.content).find("[data-start-story]").on("click", function () {

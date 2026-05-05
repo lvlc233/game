@@ -118,6 +118,10 @@
 
 <<widget "gamePanel">>
   <main class="app-shell">
+    <header class="game-header">
+      <button type="button" class="game-nav-btn" data-cmd="home" aria-label="返回主菜单">← 主菜单</button>
+      <button type="button" class="game-nav-btn" data-cmd="back" aria-label="返回上一屏">← 上一屏</button>
+    </header>
     <section class="content-panel">
       <<if $view is "rules">>
         <<ruleWorksheet>>
@@ -154,14 +158,44 @@
 <</widget>>
 
 <<widget "singleTerminal">>
-  <div class="terminal-card">
-    <p class="terminal-command">&gt; <<= $currentCommand>></p>
-    <ul>
-      <<for _line range $screenLines>>
-        <li><<= _line>></li>
-      <</for>>
-    </ul>
-  </div>
+  <<if $screenKind is "error">>
+    <div class="terminal-card terminal-error" @data-recall="$currentCommand" title="点击返回上一屏并恢复输入">
+      <p class="terminal-command">&gt; <<= $currentCommand>></p>
+      <ul>
+        <<for _line range $screenLines>>
+          <<if typeof _line === "string">>
+            <li><<= _line>></li>
+          <<else>>
+            <li class="terminal-row">
+              <button class="cmd-tap" type="button" @data-fill="_line.cmd"><<= _line.display >></button>
+              <<if _line.note>>
+                <span class="cmd-note">— <<= _line.note >></span>
+              <</if>>
+            </li>
+          <</if>>
+        <</for>>
+      </ul>
+      <p class="terminal-error-hint">[ 点此返回 · 输入框将恢复刚才输入的内容 ]</p>
+    </div>
+  <<else>>
+    <div class="terminal-card">
+      <p class="terminal-command">&gt; <<= $currentCommand>></p>
+      <ul>
+        <<for _line range $screenLines>>
+          <<if typeof _line === "string">>
+            <li><<= _line>></li>
+          <<else>>
+            <li class="terminal-row">
+              <button class="cmd-tap" type="button" @data-fill="_line.cmd"><<= _line.display >></button>
+              <<if _line.note>>
+                <span class="cmd-note">— <<= _line.note >></span>
+              <</if>>
+            </li>
+          <</if>>
+        <</for>>
+      </ul>
+    </div>
+  <</if>>
 <</widget>>
 
 <<widget "docViewer">>
@@ -210,9 +244,9 @@
         <</for>>
       <</for>>
       <<if _ok>>
-        <<run setup.setScreen("terminal", "rule", "", ["Rule fragments accepted. The archive becomes quieter."], "rule")>>
+        <<run setup.setScreen("terminal", "rule", "", ["规则碎片已被接受。文件柜变得安静了一些。"], "rule")>>
       <<else>>
-        <<run setup.setScreen("terminal", "rule", "", ["Some fields conflict with recovered files."], "error")>>
+        <<run setup.setScreen("terminal", "rule", "", ["部分字段与已恢复档案冲突。请重新检查。"], "error")>>
       <</if>>
       <<run setup.persistProgress()>>
       <<replace "#app-root">><<gameShell>><</replace>>

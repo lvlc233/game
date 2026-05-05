@@ -109,7 +109,7 @@ const server = http.createServer((req, res) => {
 
     await runCommand(page, "help");
     body = await page.locator("body").innerText();
-    if (!body.includes("> help") || !body.includes("help: 查询指令")) {
+    if (!body.includes("> help") || !body.includes("显示当前可用指令")) {
       throw new Error("help screen missing");
     }
 
@@ -145,7 +145,7 @@ const server = http.createServer((req, res) => {
     if (!body.includes("nt-014-badge")) {
       throw new Error("doc list did not include unlocked archive");
     }
-    if (body.includes("help: 查询指令")) {
+    if (body.includes("显示当前可用指令")) {
       throw new Error("command screens should refresh instead of appending history");
     }
 
@@ -178,6 +178,31 @@ const server = http.createServer((req, res) => {
     body = await reopened.locator("body").innerText();
     if (!body.includes("羊的匿名帖子摘录")) {
       throw new Error("newly unlocked archive should be openable right after find");
+    }
+
+    // back skips over error screens
+    await runCommand(reopened, "help");
+    body = await reopened.locator("body").innerText();
+    if (!body.includes("显示当前可用指令")) {
+      throw new Error("help precondition missing for back-skip-error test");
+    }
+    await runCommand(reopened, "totally-bogus-thing");
+    body = await reopened.locator("body").innerText();
+    if (!body.includes("未找到匹配的档案")) {
+      throw new Error("bogus command should land on error screen");
+    }
+    await runCommand(reopened, "back");
+    body = await reopened.locator("body").innerText();
+    if (!body.includes("显示当前可用指令")) {
+      throw new Error("back should skip error and return to prior help screen");
+    }
+
+    // clicking a cmd-tap chip fills the input box
+    await runCommand(reopened, "doc");
+    await reopened.locator(".cmd-tap").first().click();
+    const filled = await reopened.locator("#passages .command-input-wrap input").inputValue();
+    if (!filled) {
+      throw new Error("cmd-tap chip should fill the command input");
     }
 
     await runCommand(reopened, "reset");
