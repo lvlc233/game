@@ -482,11 +482,14 @@ setup.search = function (term) {
 setup.openDoc = function (arg) {
   var doc = setup.findDoc(arg);
   if (!doc) {
-    setup.setScreen("terminal", arg || "open", "没有找到文档", ["No unique archive matches: " + arg], "error");
+    setup.setScreen("terminal", arg || "open", "", ["未找到匹配的档案：" + arg], "error");
     return;
   }
   if (!setup.isUnlocked(doc)) {
-    setup.setScreen("terminal", doc.id, "文档损坏", ["Archive exists in index, but data blocks are still damaged."], "error");
+    setup.setScreen("terminal", doc.id, "", [
+      "档案 " + doc.id + " 在索引中存在，但数据块尚未恢复。",
+      "请先用 find <关键词> 进行检索。"
+    ], "error");
     return;
   }
   State.variables.activeDoc = doc.id;

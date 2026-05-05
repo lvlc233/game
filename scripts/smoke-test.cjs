@@ -149,6 +149,37 @@ const server = http.createServer((req, res) => {
       throw new Error("command screens should refresh instead of appending history");
     }
 
+    // archive lock/unlock + open flow
+    await runCommand(reopened, "di-021");
+    body = await reopened.locator("body").innerText();
+    if (!body.includes("数据块尚未恢复")) {
+      throw new Error("locked archive should report damaged when opened directly");
+    }
+
+    await runCommand(reopened, "iv-000");
+    body = await reopened.locator("body").innerText();
+    if (!body.includes("第一学院第三十六届开学典礼邀请函")) {
+      throw new Error("starter archive iv-000 should be openable from the start");
+    }
+
+    await runCommand(reopened, "nt-014");
+    body = await reopened.locator("body").innerText();
+    if (!body.includes("黑板角落的值日记录")) {
+      throw new Error("previously find-unlocked archive should be openable by id prefix");
+    }
+
+    await runCommand(reopened, "find 羊");
+    body = await reopened.locator("body").innerText();
+    if (!body.includes("di-021-sheep")) {
+      throw new Error("find should unlock di-021-sheep via keyword 羊");
+    }
+
+    await runCommand(reopened, "di-021");
+    body = await reopened.locator("body").innerText();
+    if (!body.includes("羊的匿名帖子摘录")) {
+      throw new Error("newly unlocked archive should be openable right after find");
+    }
+
     await runCommand(reopened, "reset");
     await reopened.waitForFunction(() => SugarCube.State.variables.introCompleted === false);
     await reopened.locator(".intro-shell").waitFor({ state: "visible" });
