@@ -31,6 +31,9 @@
       <<if $menuMode is "archive" and $selectedStory neq "">>
         <<saveSidebar>>
       <</if>>
+      <<if $menuMode is "new-story" and $selectedStory neq "">>
+        <<storyPreview>>
+      <</if>>
       <div class="entry-center">
         <h1>欢迎来到第一学院</h1>
         <div class="entry-actions">
@@ -38,9 +41,6 @@
           <button type="button" data-menu-action="archive">档案</button>
           <button type="button" data-menu-action="about">关于游戏</button>
         </div>
-        <<if $menuMode is "new-story" and $selectedStory neq "">>
-          <<storyPreview>>
-        <</if>>
       </div>
     </section>
   </main>
@@ -57,43 +57,62 @@
 <</widget>>
 
 <<widget "saveSidebar">>
-  <<set _saves to setup.listStorySaves($selectedStory)>>
+  <<set _bucket to setup.partitionSaves($selectedStory)>>
+  <<set _autoSave to _bucket.auto>>
+  <<set _manualSaves to _bucket.manual>>
   <aside class="menu-sidebar save-list">
-    <<if _saves.length is 0>>
-      <div class="empty-save">不存在档案</div>
-    <<else>>
-      <<for _save range _saves>>
-        <<capture _save>>
-          <div class="save-button-wrap">
-          <<button _save.name>>
-            <<if setup.loadStorySave($selectedStory, _save.id)>>
-              <<run setup.persistProgress()>>
-              <<run setup.pushBrowserState()>>
-              <<replace "#app-root">><<gameShell>><</replace>>
-            <</if>>
-          <</button>>
-          <small><<= _save.updatedAt >></small>
-          </div>
-        <</capture>>
-      <</for>>
-    <</if>>
+    <div class="save-section">
+      <h3 class="save-section-title">自动存档</h3>
+      <<if _autoSave>>
+        <div class="save-button-wrap">
+          <button class="save-button" type="button" data-save-id="auto">
+            <span class="save-name"><<= _autoSave.name >></span>
+            <small class="save-time"><<= _autoSave.updatedAt >></small>
+          </button>
+        </div>
+      <<else>>
+        <div class="empty-save">尚无自动存档</div>
+      <</if>>
+    </div>
+    <div class="save-section">
+      <h3 class="save-section-title">手动存档</h3>
+      <<if _manualSaves.length is 0>>
+        <div class="empty-save">在故事内输入 <code>save 名字</code> 即可保存</div>
+      <<else>>
+        <<for _save range _manualSaves>>
+          <<capture _save>>
+            <div class="save-button-wrap">
+              <button class="save-button" type="button" @data-save-id="_save.id">
+                <span class="save-name"><<= _save.name >></span>
+                <small class="save-time"><<= _save.updatedAt >></small>
+              </button>
+              <button class="save-delete" type="button" @data-delete-save="_save.id" aria-label="删除存档">×</button>
+            </div>
+          <</capture>>
+        <</for>>
+      <</if>>
+    </div>
   </aside>
 <</widget>>
 
 <<widget "storyPreview">>
   <<set _story to setup.getStory($selectedStory)>>
   <<if _story>>
-    <div class="story-preview">
+    <<set _hasContinue to setup.hasAutoSave($selectedStory)>>
+    <aside class="menu-sidebar story-preview-panel">
+      <h3 class="story-preview-title"><<= _story.title >></h3>
       <div class="story-description">
         <<for _line range _story.description>>
           <p><span class="story-type-line"></span></p>
         <</for>>
       </div>
       <div class="story-start-actions">
-        <button type="button" data-start-story="first-academy">开始新游戏</button>
-        <button type="button" data-continue-story="first-academy">继续游戏</button>
+        <button type="button" @data-start-story="$selectedStory">开始新游戏</button>
+        <<if _hasContinue>>
+          <button type="button" @data-continue-story="$selectedStory">继续游戏</button>
+        <</if>>
       </div>
-    </div>
+    </aside>
   <</if>>
 <</widget>>
 
@@ -135,22 +154,14 @@
 <</widget>>
 
 <<widget "singleTerminal">>
-  <<if $screenKind is "intro">>
-    <div class="intro-copy">
+  <div class="terminal-card">
+    <p class="terminal-command">&gt; <<= $currentCommand>></p>
+    <ul>
       <<for _line range $screenLines>>
-        <p><span class="type-line"><<= _line>></span></p>
+        <li><<= _line>></li>
       <</for>>
-    </div>
-  <<else>>
-    <div class="terminal-card">
-      <p class="terminal-command">&gt; <<= $currentCommand>></p>
-      <ul>
-        <<for _line range $screenLines>>
-          <li><<= _line>></li>
-        <</for>>
-      </ul>
-    </div>
-  <</if>>
+    </ul>
+  </div>
 <</widget>>
 
 <<widget "docViewer">>

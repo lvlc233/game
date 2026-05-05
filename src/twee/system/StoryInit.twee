@@ -21,12 +21,15 @@ setup.stories = [
 
 setup.commands = [
   { name: "help", text: "查询指令" },
-  { name: "back", text: "回到上一次跳转的地方" },
-  { name: "save", text: "保存" },
-  { name: "load", text: "读档" },
-  { name: "doc", text: "列出文档" },
-  { name: "文件名字", text: "阅读文档" },
-  { name: "find [关键词]", text: "对已阅读的文档进行关键字查询" },
+  { name: "back", text: "回到上一屏（仅故事内）" },
+  { name: "save [名字]", text: "创建命名手动存档" },
+  { name: "saves", text: "列出当前剧本所有存档" },
+  { name: "delete <id|名字>", text: "删除手动存档" },
+  { name: "rename <id|名字> <新名字>", text: "重命名手动存档" },
+  { name: "load", text: "读取主进度" },
+  { name: "doc", text: "列出已解锁文档" },
+  { name: "<档案名>", text: "阅读文档（前缀匹配）" },
+  { name: "find [关键词]", text: "搜索关键词解锁档案" },
   { name: "note", text: "查阅笔记" },
   { name: "rule", text: "填写规则表" },
   { name: "link", text: "查看文档关系" },
@@ -158,11 +161,10 @@ setup.defaultState = function () {
     storyDescriptionDone: false,
     input: "",
     lastInput: "help",
-    previousView: "intro",
-    view: "intro",
+    view: "terminal",
     currentCommand: "",
-    screenTitle: "欢迎来到第一学院",
-    screenKind: "intro",
+    screenTitle: "",
+    screenKind: "terminal",
     screenLines: [
       "离线备份盘修复完成。",
       "文件索引残缺，检索协议等待输入。",
@@ -175,7 +177,8 @@ setup.defaultState = function () {
       return doc.id;
     }),
     notes: setup.defaultNotes.slice(),
-    ruleInputs: {}
+    ruleInputs: {},
+    gameStack: []
   };
 };
 
@@ -197,7 +200,6 @@ setup.snapshot = function () {
     selectedSaveId: v.selectedSaveId,
     storyDescriptionDone: v.storyDescriptionDone,
     lastInput: v.lastInput,
-    previousView: v.previousView,
     view: v.view,
     currentCommand: v.currentCommand,
     screenTitle: v.screenTitle,
@@ -206,7 +208,8 @@ setup.snapshot = function () {
     activeDoc: v.activeDoc,
     unlocked: v.unlocked,
     notes: v.notes,
-    ruleInputs: v.ruleInputs
+    ruleInputs: v.ruleInputs,
+    gameStack: v.gameStack
   };
 };
 
@@ -264,12 +267,76 @@ setup.upsertSave = function (storyId, save) {
 
 setup.makeSave = function (storyId, slotType, name) {
   return {
-    id: slotType === "auto" ? "auto" : "manual-" + Date.now(),
+    id: slotType === "auto" ? "auto" : "save-" + Date.now() + "-" + Math.random().toString(36).slice(2, 6),
     type: slotType,
     name: name || (slotType === "auto" ? "自动存档" : "自定义存档"),
     updatedAt: new Date().toLocaleString(),
     snapshot: setup.snapshot()
   };
+};
+
+setup.deleteSave = function (storyId, saveId) {
+  if (saveId === "auto") {
+    return false;
+  }
+  var library = setup.readLibrary();
+  var list = library[storyId] || [];
+  var index = list.findIndex(function (item) { return item.id === saveId; });
+  if (index < 0) {
+    return false;
+  }
+  list.splice(index, 1);
+  library[storyId] = list;
+  setup.writeLibrary(library);
+  return true;
+};
+
+setup.renameSave = function (storyId, saveId, newName) {
+  if (!newName || saveId === "auto") {
+    return false;
+  }
+  var library = setup.readLibrary();
+  var list = library[storyId] || [];
+  var item = list.find(function (i) { return i.id === saveId; });
+  if (!item) {
+    return false;
+  }
+  item.name = newName;
+  item.updatedAt = new Date().toLocaleString();
+  setup.writeLibrary(library);
+  return true;
+};
+
+setup.findSave = function (storyId, query) {
+  if (!query) return null;
+  var list = setup.listStorySaves(storyId);
+  var direct = list.find(function (i) { return i.id === query; });
+  if (direct) return direct;
+  return list.find(function (i) { return i.name === query; }) || null;
+};
+
+setup.partitionSaves = function (storyId) {
+  var list = setup.listStorySaves(storyId);
+  var auto = null;
+  var manual = [];
+  for (var i = 0; i < list.length; i += 1) {
+    if (list[i].type === "auto") {
+      auto = list[i];
+    } else if (list[i].type === "manual") {
+      manual.push(list[i]);
+    }
+  }
+  return { auto: auto, manual: manual };
+};
+
+setup.hasAutoSave = function (storyId) {
+  var list = setup.listStorySaves(storyId);
+  for (var i = 0; i < list.length; i += 1) {
+    if (list[i].type === "auto") {
+      return true;
+    }
+  }
+  return false;
 };
 
 setup.autoSaveStory = function () {
@@ -289,6 +356,11 @@ setup.loadStorySave = function (storyId, saveId) {
   State.variables.introCompleted = true;
   State.variables.menuMode = "game";
   State.variables.selectedStory = storyId;
+  setup.setScreen("terminal", "load", "", [
+    "已读取存档：" + save.name,
+    "类型：" + (save.type === "auto" ? "自动存档" : "手动存档") + "  时间：" + save.updatedAt,
+    "继续输入指令进行交互。"
+  ], "save");
   return true;
 };
 
@@ -354,7 +426,22 @@ setup.unlock = function (doc) {
 
 setup.setScreen = function (view, command, title, lines, kind) {
   var v = State.variables;
-  v.previousView = v.view || "intro";
+  if (v.menuMode === "game" && v.view) {
+    if (!Array.isArray(v.gameStack)) {
+      v.gameStack = [];
+    }
+    v.gameStack.push({
+      view: v.view,
+      currentCommand: v.currentCommand,
+      screenTitle: v.screenTitle,
+      screenLines: (v.screenLines || []).slice(),
+      screenKind: v.screenKind,
+      activeDoc: v.activeDoc
+    });
+    if (v.gameStack.length > 50) {
+      v.gameStack.shift();
+    }
+  }
   v.view = view;
   v.currentCommand = command || "";
   v.screenTitle = title || "";
@@ -454,13 +541,65 @@ setup.runCommand = function (raw) {
       }), "link");
       break;
     case "save":
-      setup.upsertSave(State.variables.selectedStory || "first-academy", setup.makeSave(State.variables.selectedStory || "first-academy", "manual", "自定义存档"));
-      setup.setScreen("terminal", "save", "", ["已创建自定义存档。自动存档仍会继续覆盖最新进度。"], "save");
+      var saveStoryId = State.variables.selectedStory || "first-academy";
+      var customName = arg || ("自定义存档 " + new Date().toLocaleString());
+      setup.upsertSave(saveStoryId, setup.makeSave(saveStoryId, "manual", customName));
+      setup.setScreen("terminal", "save", "", [
+        "已保存：" + customName,
+        "使用 saves 查看所有存档；使用 delete <id|名字> 删除手动存档；使用 rename <id|名字> <新名字> 重命名。"
+      ], "save");
+      break;
+    case "saves":
+      var listStoryId = State.variables.selectedStory || "first-academy";
+      var allSaves = setup.listStorySaves(listStoryId);
+      if (allSaves.length === 0) {
+        setup.setScreen("terminal", "saves", "", ["还没有存档。"], "save-list");
+      } else {
+        var saveLines = allSaves.map(function (s) {
+          var prefix = s.type === "auto" ? "[auto]   " : "[manual] ";
+          return prefix + s.id + "  ::  " + s.name + "  ::  " + s.updatedAt;
+        });
+        setup.setScreen("terminal", "saves", "", saveLines, "save-list");
+      }
+      break;
+    case "delete":
+      var delStoryId = State.variables.selectedStory || "first-academy";
+      if (!arg) {
+        setup.setScreen("terminal", "delete", "", ["用法：delete <id|名字>，输入 saves 查看 id。"], "error");
+        break;
+      }
+      var delTarget = setup.findSave(delStoryId, arg);
+      if (delTarget && delTarget.id === "auto") {
+        setup.setScreen("terminal", "delete", "", ["不能删除自动存档。"], "error");
+      } else if (delTarget && setup.deleteSave(delStoryId, delTarget.id)) {
+        setup.setScreen("terminal", "delete", "", ["已删除存档：" + delTarget.name + "（" + delTarget.id + "）"], "save");
+      } else {
+        setup.setScreen("terminal", "delete", "", ["没有匹配的存档：" + arg], "error");
+      }
+      break;
+    case "rename":
+      var renStoryId = State.variables.selectedStory || "first-academy";
+      var firstSpace = arg.indexOf(" ");
+      if (firstSpace < 0) {
+        setup.setScreen("terminal", "rename", "", ["用法：rename <id|名字> <新名字>"], "error");
+        break;
+      }
+      var renameKey = arg.slice(0, firstSpace).trim();
+      var newName = arg.slice(firstSpace).trim();
+      var renTarget = setup.findSave(renStoryId, renameKey);
+      if (renTarget && renTarget.id !== "auto" && setup.renameSave(renStoryId, renTarget.id, newName)) {
+        setup.setScreen("terminal", "rename", "", ["已重命名：" + renTarget.id + " -> " + newName], "save");
+      } else if (renTarget && renTarget.id === "auto") {
+        setup.setScreen("terminal", "rename", "", ["不能重命名自动存档。"], "error");
+      } else {
+        setup.setScreen("terminal", "rename", "", ["未找到该存档：" + renameKey], "error");
+      }
       break;
     case "load":
       var progress = setup.readProgress();
       if (progress) {
         setup.applyProgress(progress);
+        setup.setScreen("terminal", "load", "", ["已恢复主进度。"], "save");
       } else {
         setup.setScreen("terminal", "load", "", ["没有可读取的存档。"], "error");
       }
@@ -476,7 +615,26 @@ setup.runCommand = function (raw) {
       setup.pushBrowserState();
       return;
     case "back":
-      history.back();
+      if (State.variables.menuMode !== "game") {
+        return;
+      }
+      if (!Array.isArray(State.variables.gameStack) || State.variables.gameStack.length === 0) {
+        State.variables.view = "terminal";
+        State.variables.currentCommand = "back";
+        State.variables.screenTitle = "";
+        State.variables.screenLines = ["已经是最早一屏，无法继续返回。"];
+        State.variables.screenKind = "error";
+      } else {
+        var prevSnap = State.variables.gameStack.pop();
+        State.variables.view = prevSnap.view;
+        State.variables.currentCommand = prevSnap.currentCommand;
+        State.variables.screenTitle = prevSnap.screenTitle;
+        State.variables.screenLines = prevSnap.screenLines;
+        State.variables.screenKind = prevSnap.screenKind;
+        State.variables.activeDoc = prevSnap.activeDoc;
+      }
+      setup.persistProgress();
+      setup.pushBrowserState();
       return;
     default:
       setup.openDoc(command);
@@ -656,6 +814,17 @@ $(document).on(":passagerender", function (event) {
     Engine.play("Game");
   });
 
+  $(event.content).find("[data-delete-save]").on("click", function (ev) {
+    ev.stopPropagation();
+    var saveId = this.getAttribute("data-delete-save");
+    var storyId = State.variables.selectedStory;
+    if (storyId && setup.deleteSave(storyId, saveId)) {
+      setup.persistProgress();
+      setup.pushBrowserState();
+      Engine.play("Game");
+    }
+  });
+
   $(event.content).find("[data-start-story]").on("click", function () {
     setup.startStory(this.getAttribute("data-start-story"));
     Engine.play("Game");
@@ -666,7 +835,7 @@ $(document).on(":passagerender", function (event) {
     Engine.play("Game");
   });
 
-  var preview = $(event.content).find(".story-preview");
+  var preview = $(event.content).find(".story-preview-panel");
   if (preview.length) {
     var story = setup.getStory(State.variables.selectedStory);
     var sourceLines = story ? story.description : [];

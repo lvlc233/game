@@ -102,8 +102,8 @@ const server = http.createServer((req, res) => {
     await page.locator('[data-menu-action="new-story"]').click();
     await page.getByRole("button", { name: "第一学院" }).click();
     await page.waitForFunction(() => document.body.innerText.includes("你收到"));
-    await page.locator(".story-preview").click();
-    await page.locator(".story-preview.is-complete").waitFor({ state: "visible" });
+    await page.locator(".story-preview-panel").click();
+    await page.locator(".story-preview-panel.is-complete").waitFor({ state: "visible" });
     await page.getByRole("button", { name: "开始新游戏" }).click();
     await page.locator(".command-input-wrap input").waitFor({ state: "visible" });
 
@@ -138,7 +138,7 @@ const server = http.createServer((req, res) => {
       throw new Error("archive sidebar did not show auto save");
     }
 
-    await reopened.getByRole("button", { name: "自动存档" }).click();
+    await reopened.locator('button[data-save-id="auto"]').click();
     await reopened.locator(".command-input-wrap input").waitFor({ state: "visible" });
     await runCommand(reopened, "doc");
     body = await reopened.locator("body").innerText();
